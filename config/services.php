@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'bank' => [
+        'provider_code' => env('BANK_PROVIDER_CODE', 'demo_bank'),
+        'webhook_secret' => env('BANK_WEBHOOK_SECRET', 'demo-webhook-secret'),
+    ],
+
+    'bank' => [
+        'provider_code' => env('BANK_PROVIDER_CODE', 'demo_bank'),
+        'webhook_secret' => env('BANK_WEBHOOK_SECRET', 'demo-webhook-secret'),
+    ],
+
 ];
