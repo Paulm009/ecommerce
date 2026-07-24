@@ -1,9 +1,11 @@
 export type User = {
-    id: number;
+    id: string;
     name: string;
     email: string;
     avatar?: string;
     email_verified_at: string | null;
+    user_type?: string;
+    status?: string;
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;
@@ -12,6 +14,7 @@ export type User = {
 
 export type Auth = {
     user: User;
+    permissions: string[];
 };
 
 /* @chisel-passkeys */

@@ -1,5 +1,8 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Http\Controllers\Settings\CompanySettingsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -24,6 +27,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
+
+    Route::get('settings/company', [CompanySettingsController::class, 'edit'])
+        ->name('company-settings.edit');
+
+    Route::patch('settings/company', [CompanySettingsController::class, 'update'])
+        ->name('company-settings.update');
 });
 
 Route::get('.well-known/passkey-endpoints', function () {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
@@ -40,6 +42,17 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'permissions' => fn (): array => $request->user()?->roles()
+                    ->with('permissions:id,code')
+                    ->get()
+                    ->flatMap(fn ($role) => $role->permissions->pluck('code'))
+                    ->unique()
+                    ->values()
+                    ->all() ?? [],
+            ],
+            'flash' => [
+                'success' => fn (): ?string => $request->session()->get('success'),
+                'scanResult' => fn (): ?array => $request->session()->get('scanResult'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

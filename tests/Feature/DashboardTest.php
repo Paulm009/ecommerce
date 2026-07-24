@@ -18,7 +18,8 @@ class DashboardTest extends TestCase
 
     public function test_authenticated_users_can_visit_the_dashboard()
     {
-        $user = User::factory()->create();
+        $this->seed();
+        $user = User::query()->where('email', 'admin@example.com')->firstOrFail();
         $this->actingAs($user);
 
         $response = $this->get(route('dashboard'));
