@@ -23,6 +23,7 @@ use App\Http\Controllers\Public\ProductCheckoutController;
 use App\Http\Controllers\Public\StoreCatalogController;
 use App\Http\Controllers\Public\TicketViewController;
 use App\Http\Controllers\Webhooks\BankPaymentWebhookController;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -88,5 +89,45 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('courtesies', [CourtesyController::class, 'index'])->middleware('permission:tickets.issue_courtesy')->name('courtesies.index');
     Route::post('courtesies/{occurrence}', [CourtesyController::class, 'store'])->middleware('permission:tickets.issue_courtesy')->name('courtesies.store');
 });
+
+Route::get('deploy', function (): JsonResponse {
+    $gitDir = base_path('.git');
+    $hash = null;
+    $date = null;
+
+    if (is_dir($gitDir)) {
+        $head = @file_get_contents("{$gitDir}/HEAD");
+        if ($head !== false) {
+            $ref = trim(str_replace('ref: ', '', $head));
+            $refPath = "{$gitDir}/{$ref}";
+            if (is_file($refPath)) {
+                $hash = trim((string) @file_get_contents($refPath));
+            } elseif (is_file("{$gitDir}/packed-refs")) {
+                $packed = (string) @file_get_contents("{$gitDir}/packed-refs");
+                if (preg_match('/^([a-f0-9]+)\s+'.preg_quote($ref, '/').'/m', $packed, $m)) {
+                    $hash = $m[1];
+                }
+            }
+
+            if ($hash && is_file("{$gitDir}/logs/{$ref}")) {
+                $log = (string) @file_get_contents("{$gitDir}/logs/{$ref}");
+                $lines = array_filter(explode("\n", $log));
+                $last = end($lines);
+                if ($last && preg_match('/^[a-f0-9]+\s+[a-f0-9]+\s+.*?\s+(\d+)\s+/', $last, $m)) {
+                    $date = date('c', (int) $m[1]);
+                }
+            }
+        }
+    }
+
+    return response()->json([
+        'version' => $hash ? substr($hash, 0, 8) : 'unknown',
+        'commit' => $hash,
+        'deployed_at' => $date ?? now()->toIso8601String(),
+        'environment' => app()->environment(),
+        'laravel' => app()->version(),
+        'php' => PHP_VERSION,
+    ]);
+})->name('deploy');
 
 require __DIR__.'/settings.php';
