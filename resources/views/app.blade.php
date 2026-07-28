@@ -18,14 +18,18 @@
         <meta property="og:title" content="TiketMark · Entradas y experiencias">
         <meta property="og:description" content="Compra entradas, elige tu ubicación, paga con QR y recibe tu acceso digital. Eventos y productos oficiales en un solo lugar.">
         <meta property="og:url" content="{{ url()->current() }}">
-        <meta property="og:image" content="{{ asset('web-app-manifest-512x512.png') }}">
+        <meta property="og:image" content="{{ asset('openg.jpg') }}">
+        <meta property="og:image:type" content="image/jpeg">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:image:alt" content="TiketMark · Tu entrada, fácil, rápida y segura">
         <meta property="og:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
 
         {{-- Twitter Card --}}
-        <meta name="twitter:card" content="summary">
+        <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="TiketMark · Entradas y experiencias">
         <meta name="twitter:description" content="Compra entradas, elige tu ubicación, paga con QR y recibe tu acceso digital.">
-        <meta name="twitter:image" content="{{ asset('web-app-manifest-512x512.png') }}">
+        <meta name="twitter:image" content="{{ asset('openg.jpg') }}">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
