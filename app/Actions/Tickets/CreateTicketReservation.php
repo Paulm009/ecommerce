@@ -11,7 +11,6 @@ use App\Models\EventLocationInventory;
 use App\Models\EventOccurrence;
 use App\Models\TicketReservation;
 use App\Models\TicketReservationItem;
-use App\Models\TicketType;
 use App\Models\TicketTypeInventory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 final class CreateTicketReservation
 {
     /**
-     * @param  array<int, array{event_location_id: string, ticket_type_id: string, quantity: int}>  $requestedItems
+     * @param  array<int, array{event_location_id: string, ticket_type_id?: string|null, quantity: int}>  $requestedItems
      */
     public function handle(EventOccurrence $occurrence, array $requestedItems, string $sessionToken, ?string $createdByUserId = null): TicketReservation
     {
@@ -37,27 +36,58 @@ final class CreateTicketReservation
             ]);
 
             collect($requestedItems)
-                ->sortBy(fn (array $item): string => $item['event_location_id'].'-'.$item['ticket_type_id'])
+                ->sortBy(fn (array $item): string => $item['event_location_id'].'-'.(string) data_get($item, 'ticket_type_id', ''))
                 ->each(function (array $requestedItem) use ($occurrence, $reservation, $createdByUserId): void {
                     $quantity = $requestedItem['quantity'];
+                    $requestedTicketTypeId = data_get($requestedItem, 'ticket_type_id');
                     $location = EventLocation::query()
                         ->with('layout:id,event_occurrence_id')
                         ->findOrFail($requestedItem['event_location_id']);
-                    $ticketType = TicketType::query()->findOrFail($requestedItem['ticket_type_id']);
 
-                    if ($location->layout->event_occurrence_id !== $occurrence->id || $ticketType->event_occurrence_id !== $occurrence->id) {
-                        throw ValidationException::withMessages(['items' => 'La ubicación o el tipo de entrada no corresponde a la función seleccionada.']);
+                    if ($location->layout === null || $location->layout->event_occurrence_id !== $occurrence->id) {
+                        throw ValidationException::withMessages(['items' => 'La ubicación seleccionada no corresponde a la función seleccionada.']);
                     }
 
-                    $locationInventory = EventLocationInventory::query()->lockForUpdate()->findOrFail($location->id);
-                    $ticketInventory = TicketTypeInventory::query()->lockForUpdate()->findOrFail($ticketType->id);
-                    $assignment = $location->ticketTypes()
-                        ->whereKey($ticketType->id)
-                        ->wherePivot('is_active', true)
-                        ->first();
+                    if (! $location->is_enabled || ! $location->is_visible || ! $location->is_selectable) {
+                        throw ValidationException::withMessages(['items' => 'La ubicación seleccionada no está habilitada para reservar.']);
+                    }
 
-                    if ($assignment === null || ! $location->is_enabled || ! $location->is_visible || ! $location->is_selectable) {
-                        throw ValidationException::withMessages(['items' => 'La ubicación seleccionada no está habilitada para ese tipo de entrada.']);
+                    $ticketTypeQuery = $location->ticketTypes()
+                        ->wherePivot('is_active', true)
+                        ->orderBy('event_location_ticket_types.created_at');
+
+                    if ($requestedTicketTypeId !== null) {
+                        $ticketTypeQuery->whereKey($requestedTicketTypeId);
+                    }
+
+                    $ticketType = $ticketTypeQuery->first();
+
+                    if ($ticketType === null || $ticketType->event_occurrence_id !== $occurrence->id) {
+                        throw ValidationException::withMessages(['items' => 'La ubicación seleccionada no tiene una tarifa válida para esta función.']);
+                    }
+
+                    $locationInventory = EventLocationInventory::query()
+                        ->lockForUpdate()
+                        ->find($location->id);
+                    if ($locationInventory === null) {
+                        throw ValidationException::withMessages(['items' => 'La ubicación seleccionada no tiene inventario configurado.']);
+                    }
+
+                    $ticketInventory = TicketTypeInventory::query()
+                        ->lockForUpdate()
+                        ->find($ticketType->id);
+
+                    if ($ticketInventory === null) {
+                        $ticketInventory = TicketTypeInventory::query()->create([
+                            'ticket_type_id' => $ticketType->id,
+                            'quota_total' => (int) ($ticketType->quota_total ?? 0),
+                            'selection_quantity' => 0,
+                            'payment_reserved_quantity' => 0,
+                            'sold_quantity' => 0,
+                            'courtesy_quantity' => 0,
+                            'available_quantity' => max(0, (int) ($ticketType->quota_total ?? 0)),
+                            'lock_version' => 0,
+                        ]);
                     }
 
                     if ($quantity < 1 || $locationInventory->available_quantity < $quantity) {
@@ -68,7 +98,7 @@ final class CreateTicketReservation
                         throw ValidationException::withMessages(['items' => 'El tipo de entrada ya no tiene cupos suficientes.']);
                     }
 
-                    $unitPrice = (string) ($assignment->pivot->price_override ?? $ticketType->base_price);
+                    $unitPrice = (string) ($ticketType->pivot->price_override ?? $ticketType->base_price);
                     $reservationItem = TicketReservationItem::query()->create([
                         'ticket_reservation_id' => $reservation->id,
                         'ticket_type_id' => $ticketType->id,

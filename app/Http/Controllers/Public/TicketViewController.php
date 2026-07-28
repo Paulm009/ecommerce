@@ -17,7 +17,10 @@ final class TicketViewController extends Controller
     public function __invoke(Request $request, Ticket $ticket, TicketQrToken $qrTokens, QrCodeDataUri $qrCode): Response
     {
         $token = $request->string('token')->toString();
-        abort_unless($token !== '' && hash_equals($ticket->qr_token_hash, hash('sha256', $token)), 403);
+        $isSignedForThisTicket = $qrTokens->ticketId($token) === $ticket->id;
+        $matchesStoredHash = $token !== '' && hash_equals($ticket->qr_token_hash, hash('sha256', $token));
+
+        abort_unless($isSignedForThisTicket || $matchesStoredHash, 403);
 
         return Inertia::render('tickets/show', [
             'ticket' => $ticket->load(['occurrence.event', 'entitlements']),

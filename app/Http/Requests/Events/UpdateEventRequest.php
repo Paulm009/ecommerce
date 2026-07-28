@@ -7,7 +7,7 @@ namespace App\Http\Requests\Events;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-final class StoreEventRequest extends FormRequest
+final class UpdateEventRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,7 +19,6 @@ final class StoreEventRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:220'],
             'event_category_id' => ['nullable', Rule::exists('event_categories', 'id')->where('is_active', true)],
-            'layout_template_id' => ['required', Rule::exists('layout_templates', 'id')->where('status', 'active')],
             'short_description' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
             'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
@@ -30,7 +29,7 @@ final class StoreEventRequest extends FormRequest
             'ends_at' => ['nullable', 'date', 'after:starts_at'],
             'sales_start_at' => ['nullable', 'date'],
             'sales_end_at' => ['nullable', 'date'],
-            'status' => ['required', Rule::in(['draft', 'published'])],
+            'status' => ['required', Rule::in(['draft', 'published', 'finished', 'cancelled'])],
             'ticket_types' => ['sometimes', 'array', 'min:1'],
             'ticket_types.*.id' => ['nullable', 'string'],
             'ticket_types.*.name' => ['required_with:ticket_types', 'string', 'max:160'],
