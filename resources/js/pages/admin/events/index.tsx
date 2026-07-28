@@ -71,6 +71,12 @@ type EventFormData = {
     status: 'draft' | 'published' | 'finished' | 'cancelled';
 };
 
+const EVENT_STATUSES = ['draft', 'published', 'finished', 'cancelled'] as const;
+
+function isEventStatus(value: string): value is EventFormData['status'] {
+    return (EVENT_STATUSES as readonly string[]).includes(value);
+}
+
 export default function AdminEvents({
     events,
     categories,
@@ -626,9 +632,11 @@ export default function AdminEvents({
                                 <select
                                     className={'h-9 w-full rounded-md border bg-background px-3 text-sm'}
                                     value={form.data.status}
-                                    onChange={(e) =>
-                                        form.setData('status', e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                        if (isEventStatus(e.target.value)) {
+                                            form.setData('status', e.target.value);
+                                        }
+                                    }}
                                 >
                                     {editingEventId ? (
                                         <>

@@ -35,7 +35,7 @@ return new class extends Migration
     }
 
     /**
-     * @param array<string, mixed> $source
+     * @param  array<string, mixed>  $source
      */
     private function inferTemplateType(array $source): string
     {

@@ -151,4 +151,3 @@ it('updates an event and replaces its cover image', function (): void {
         ->and($event->venue_name)->toBe('Nuevo recinto')
         ->and($event->cover_image_url)->not->toBeEmpty();
 });
-

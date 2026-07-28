@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace App\Actions\Events;
 
-use Carbon\CarbonImmutable;
 use App\Models\Company;
 use App\Models\Event;
 use App\Models\EventLayout;
 use App\Models\EventLocation;
 use App\Models\EventLocationInventory;
 use App\Models\EventOccurrence;
-use App\Models\MediaAsset;
 use App\Models\LayoutTemplate;
+use App\Models\MediaAsset;
 use App\Models\TicketType;
 use App\Models\TicketTypeInventory;
 use App\Models\User;
 use App\Support\GeneratesPublicNumbers;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -119,9 +119,6 @@ final class CreateEvent
         return $eventLayout;
     }
 
-    /**
-     * @return int
-     */
     private function syncTicketTypesFromLayout(EventOccurrence $occurrence, EventLayout $layout): int
     {
         $locations = EventLocation::query()
@@ -259,7 +256,7 @@ final class CreateEvent
     }
 
     /**
-     * @param array<int, array<string, mixed>> $ticketTypes
+     * @param  array<int, array<string, mixed>>  $ticketTypes
      */
     public function syncTicketTypes(EventOccurrence $occurrence, EventLayout $layout, array $ticketTypes): void
     {
@@ -325,7 +322,7 @@ final class CreateEvent
     }
 
     /**
-     * @param Collection<string, Collection<int, EventLocation>> $locationsByParentId
+     * @param  Collection<string, Collection<int, EventLocation>>  $locationsByParentId
      * @return Collection<int, EventLocation>
      */
     private function collectSellableLocations(EventLocation $location, Collection $locationsByParentId): Collection
@@ -353,7 +350,7 @@ final class CreateEvent
     }
 
     /**
-     * @param array<int, string> $usedCodes
+     * @param  array<int, string>  $usedCodes
      */
     private function buildTicketTypeCode(EventLocation $location, string $templateType, int $index, array $usedCodes): string
     {
@@ -384,7 +381,7 @@ final class CreateEvent
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function stringValue(array $data, string $key, string $default): string
     {
@@ -396,7 +393,7 @@ final class CreateEvent
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function nullableStringValue(array $data, string $key, ?string $default): ?string
     {
@@ -410,7 +407,7 @@ final class CreateEvent
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function nullableIntegerValue(array $data, string $key, ?int $default): ?int
     {

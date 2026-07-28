@@ -67,11 +67,11 @@ export default function EventShow({ event }: { event: Event }) {
     );
     const selectedTicketType = selectedLocation?.ticketTypes?.[0];
     const selectedTicketPrice = selectedTicketType
-        ? selectedTicketType.pivot?.price_override ??
+        ? (selectedTicketType.pivot?.price_override ??
           selectedTicketType.base_price ??
           selectedLocation?.metadata_json?.price ??
-          '0.00'
-        : selectedLocation?.metadata_json?.price ?? '0.00';
+          '0.00')
+        : (selectedLocation?.metadata_json?.price ?? '0.00');
     const quantity = form.data.items[0].quantity;
     const setItem = (changes: Partial<(typeof form.data.items)[0]>) =>
         form.setData('items', [{ ...form.data.items[0], ...changes }]);
@@ -89,7 +89,7 @@ export default function EventShow({ event }: { event: Event }) {
             <Head title={event.name} />
             <section
                 className={
-                    'relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-fuchsia-700/35 via-zinc-950 to-amber-500/20 text-white'
+                    'relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-fuchsia-700/35 via-zinc-950 to-brand/20 text-white'
                 }
             >
                 {event.cover_image_url && (
@@ -130,11 +130,19 @@ export default function EventShow({ event }: { event: Event }) {
                         }
                     >
                         <span className={'flex gap-2'}>
-                            <CalendarDays className={'size-5 text-amber-100 drop-shadow-sm'} />
+                            <CalendarDays
+                                className={
+                                    'size-5 text-brand-light drop-shadow-sm'
+                                }
+                            />
                             {dateTime(occurrence.starts_at)}
                         </span>
                         <span className={'flex gap-2'}>
-                            <MapPin className={'size-5 text-amber-100 drop-shadow-sm'} />
+                            <MapPin
+                                className={
+                                    'size-5 text-brand-light drop-shadow-sm'
+                                }
+                            />
                             {event.venue_name}
                             {event.city ? `, ${event.city}` : ''}
                         </span>
@@ -147,22 +155,26 @@ export default function EventShow({ event }: { event: Event }) {
                 }
             >
                 <div>
-                    <h2 className={'text-2xl font-black'}>Elige tu ubicación</h2>
+                    <h2 className={'text-2xl font-black'}>
+                        Elige tu ubicación
+                    </h2>
                     <p className={'mt-2 text-zinc-400'}>
-                        La disponibilidad se bloquea durante 5 minutos al continuar.
+                        La disponibilidad se bloquea durante 5 minutos al
+                        continuar.
                     </p>
                     <div className={'mt-6 grid gap-3 sm:grid-cols-2'}>
                         {occurrence.layout.locations.map((location) => {
                             const selected =
                                 form.data.items[0].event_location_id ===
                                 location.id;
-                            const locationTicketType = location.ticketTypes?.[0];
+                            const locationTicketType =
+                                location.ticketTypes?.[0];
                             const locationTicketPrice = locationTicketType
-                                ? locationTicketType.pivot?.price_override ??
+                                ? (locationTicketType.pivot?.price_override ??
                                   locationTicketType.base_price ??
                                   location.metadata_json?.price ??
-                                  null
-                                : location.metadata_json?.price ?? null;
+                                  null)
+                                : (location.metadata_json?.price ?? null);
 
                             return (
                                 <button
@@ -177,12 +189,17 @@ export default function EventShow({ event }: { event: Event }) {
                                             event_location_id: location.id,
                                         })
                                     }
-                                    className={`rounded-xl border p-5 text-left transition ${selected ? 'border-amber-300 bg-amber-300/10' : 'border-white/10 bg-white/[.03] hover:border-white/25'} disabled:opacity-40`}
+                                    className={`rounded-xl border p-5 text-left transition ${selected ? 'border-brand bg-brand/10' : 'border-white/10 bg-white/[.03] hover:border-white/25'} disabled:opacity-40`}
                                 >
-                                    <div className={'flex justify-between gap-3'}>
+                                    <div
+                                        className={'flex justify-between gap-3'}
+                                    >
                                         <strong>{location.label}</strong>
-                                        <span className={'text-xs text-zinc-400'}>
-                                            {location.inventory?.available_quantity ?? 0}{' '}
+                                        <span
+                                            className={'text-xs text-zinc-400'}
+                                        >
+                                            {location.inventory
+                                                ?.available_quantity ?? 0}{' '}
                                             disp.
                                         </span>
                                     </div>
@@ -191,9 +208,14 @@ export default function EventShow({ event }: { event: Event }) {
                                             'mt-2 text-sm text-zinc-400 capitalize'
                                         }
                                     >
-                                        {location.location_type} · capacidad {location.capacity}
+                                        {location.location_type} · capacidad{' '}
+                                        {location.capacity}
                                     </p>
-                                    <p className={'mt-3 text-sm font-semibold text-amber-300'}>
+                                    <p
+                                        className={
+                                            'mt-3 text-sm font-semibold text-brand-light'
+                                        }
+                                    >
                                         {locationTicketPrice
                                             ? money(locationTicketPrice)
                                             : 'Sin precio asignado'}
@@ -205,7 +227,7 @@ export default function EventShow({ event }: { event: Event }) {
                     {event.description && (
                         <p
                             className={
-                                'mt-10 whitespace-pre-line leading-8 text-zinc-400'
+                                'mt-10 leading-8 whitespace-pre-line text-zinc-400'
                             }
                         >
                             {event.description}
@@ -286,12 +308,9 @@ export default function EventShow({ event }: { event: Event }) {
                     </div>
                     <Button
                         className={
-                            'w-full bg-amber-400 text-zinc-950 hover:bg-amber-300'
+                            'w-full bg-brand text-white hover:bg-brand-hover'
                         }
-                        disabled={
-                            form.processing ||
-                            !selectedLocation
-                        }
+                        disabled={form.processing || !selectedLocation}
                         onClick={() =>
                             form.post(reservations.store(occurrence.id).url)
                         }

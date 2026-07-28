@@ -1,5 +1,12 @@
 export type TemplateType = 'sectors' | 'matrix' | 'mixed';
 
+export type PreviewGeometry = {
+    x?: unknown;
+    y?: unknown;
+    width?: unknown;
+    height?: unknown;
+};
+
 export type PreviewNode = {
     id: string;
     parent_id: string | null;
@@ -8,7 +15,7 @@ export type PreviewNode = {
     label: string | null;
     capacity: number;
     is_selectable: boolean;
-    geometry_json: Record<string, unknown> | null;
+    geometry_json: PreviewGeometry | null;
     style_json: Record<string, unknown> | null;
     metadata_json: Record<string, unknown> | null;
     sort_order: number;

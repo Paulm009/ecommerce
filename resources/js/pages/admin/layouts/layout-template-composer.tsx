@@ -1,11 +1,11 @@
 import { useForm } from '@inertiajs/react';
 import { Plus, Trash2, Upload } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { useState } from 'react';
+import type { FormEvent, ReactElement } from 'react';
 import { FieldError } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { money } from '@/lib/platform';
 import layoutsRoutes from '@/routes/admin/layouts';
 import {
     buildPreviewNodes,
@@ -13,9 +13,12 @@ import {
     createMixedSectorDraft,
     createMixedTableDraft,
     createSectorDraft,
-    type LayoutTemplateForm,
-    type PreviewNode,
-    type TemplateType,
+} from './template-builder';
+import type {
+    LayoutTemplateForm,
+    PreviewGeometry,
+    PreviewNode,
+    TemplateType,
 } from './template-builder';
 
 type PreviewBounds = {
@@ -25,11 +28,18 @@ type PreviewBounds = {
     height: number;
 };
 
+type ResolvedGeometry = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
+
 function sortPreviewNodes(nodes: PreviewNode[]): PreviewNode[] {
     return [...nodes].sort((left, right) => left.sort_order - right.sort_order);
 }
 
-function getPreviewGeometryBounds(geometries: Required<NonNullable<PreviewNode['geometry_json']>>[]): PreviewBounds {
+function getPreviewGeometryBounds(geometries: ResolvedGeometry[]): PreviewBounds {
     if (geometries.length === 0) {
         return { minX: 0, minY: 0, width: 1, height: 1 };
     }
@@ -52,8 +62,8 @@ function getPreviewGeometry(
     nodesById: Map<string, PreviewNode>,
     nodesByParentId: Map<string, PreviewNode[]>,
     templateType?: TemplateType,
-): Required<NonNullable<PreviewNode['geometry_json']>> {
-    const geometry = node.geometry_json ?? { x: 0, y: 0, width: 1, height: 1 };
+): ResolvedGeometry {
+    const geometry: PreviewGeometry = node.geometry_json ?? { x: 0, y: 0, width: 1, height: 1 };
 
     if (templateType !== 'mixed') {
         return {
@@ -85,6 +95,7 @@ function getPreviewGeometry(
     }
 
     const parent = nodesById.get(node.parent_id);
+
     if (parent === undefined) {
         return {
             x: Number(geometry.x) || 0,
@@ -129,7 +140,7 @@ function DraftPreviewCanvas({
 }: {
     nodes: PreviewNode[];
     templateType?: TemplateType;
-}): JSX.Element {
+}): ReactElement {
     const sortedNodes = sortPreviewNodes(nodes);
     const nodesById = new Map(sortedNodes.map((node) => [node.id, node]));
     const nodesByParentId = sortedNodes.reduce<Map<string, PreviewNode[]>>((map, node) => {
@@ -173,14 +184,11 @@ function DraftPreviewCanvas({
                             templateType === 'mixed' &&
                             (node.node_type === 'seat' || node.node_type === 'table');
                         const minimumSize = mixedCircular ? 1.25 : 5;
-                        const diameter = mixedCircular
-                            ? Math.max(Math.min(widthPercent, heightPercent), minimumSize)
-                            : undefined;
                         const width = mixedCircular
-                            ? diameter
+                            ? Math.max(Math.min(widthPercent, heightPercent), minimumSize)
                             : Math.max(widthPercent, minimumSize);
                         const height = mixedCircular
-                            ? diameter
+                            ? Math.max(Math.min(widthPercent, heightPercent), minimumSize)
                             : Math.max(heightPercent, minimumSize);
                         const left = ((geometry.x - bounds.minX) / bounds.width) * 100;
                         const top = ((geometry.y - bounds.minY) / bounds.height) * 100;
@@ -234,7 +242,7 @@ function TemplateTypePill({
     active: boolean;
     children: string;
     onClick: () => void;
-}): JSX.Element {
+}): ReactElement {
     return (
         <button
             type="button"
@@ -255,7 +263,7 @@ export default function LayoutTemplateComposer({
     onSaved,
 }: {
     onSaved?: () => void;
-}): JSX.Element {
+}): ReactElement {
     const [mode, setMode] = useState<'create' | 'import'>('create');
     const createForm = useForm<LayoutTemplateForm>(createLayoutTemplateForm());
     const importForm = useForm<{ mode: 'import'; name: string; layout_file: File | null }>({

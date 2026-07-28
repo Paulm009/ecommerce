@@ -68,7 +68,7 @@ export default function ReservationShow({
                 <div>
                     <div
                         className={
-                            'mb-8 flex items-center gap-3 text-amber-300'
+                            'mb-8 flex items-center gap-3 text-brand-light'
                         }
                     >
                         <TicketCheck />
@@ -222,7 +222,7 @@ export default function ReservationShow({
                     </div>
                     <Button
                         className={
-                            'mt-6 w-full bg-amber-400 text-zinc-950 hover:bg-amber-300'
+                            'mt-6 w-full bg-brand text-white hover:bg-brand-hover'
                         }
                         disabled={
                             form.processing ||

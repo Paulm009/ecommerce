@@ -59,7 +59,7 @@ final class LayoutController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function createTemplate(array $data, string $companyId, string $userId): LayoutTemplate
     {
@@ -153,7 +153,7 @@ final class LayoutController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $source
+     * @param  array<string, mixed>  $source
      * @return array{schema_version: string, template_type: string, nodes: array<int, array<string, mixed>>, sectors?: array<int, array<string, mixed>>, matrix?: array<string, mixed>}
      */
     private function normalizeImportedSource(array $source): array
@@ -182,7 +182,7 @@ final class LayoutController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array{schema_version: string, template_type: string, nodes: array<int, array<string, mixed>>, sectors: array<int, array<string, mixed>>}
      */
     private function buildSectorSource(array $data): array
@@ -242,7 +242,7 @@ final class LayoutController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array{schema_version: string, template_type: string, matrix: array<string, mixed>, nodes: array<int, array<string, mixed>>}
      */
     private function buildMatrixSource(array $data): array
@@ -343,7 +343,7 @@ final class LayoutController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array{schema_version: string, template_type: string, sectors: array<int, array<string, mixed>>, nodes: array<int, array<string, mixed>>}
      */
     private function buildMixedSource(array $data): array
@@ -462,8 +462,8 @@ final class LayoutController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $source
-     * @param array<int, array<string, mixed>> $nodes
+     * @param  array<string, mixed>  $source
+     * @param  array<int, array<string, mixed>>  $nodes
      */
     private function persistTemplate(
         string $companyId,
@@ -518,7 +518,7 @@ final class LayoutController extends Controller
     }
 
     /**
-     * @param array<int, array<string, mixed>> $nodes
+     * @param  array<int, array<string, mixed>>  $nodes
      */
     private function inferTemplateTypeFromNodes(array $nodes): string
     {
@@ -539,7 +539,7 @@ final class LayoutController extends Controller
     }
 
     /**
-     * @param array<int, string|array<string, int>|array{row:int,column:int}> $disabledCells
+     * @param  array<int, string|array<string, int>|array{row:int,column:int}>  $disabledCells
      * @return array<int, string>
      */
     private function normalizeDisabledCells(array $disabledCells): array

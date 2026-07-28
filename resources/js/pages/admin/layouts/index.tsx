@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { Map as MapIcon, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import type { ReactElement } from 'react';
 import {
     PageHeader,
     Pagination,
@@ -108,29 +109,6 @@ function getGeometry(node: LayoutNode): Required<LayoutGeometry> {
     };
 }
 
-function getBounds(nodes: LayoutNode[]): LayoutBounds {
-    if (nodes.length === 0) {
-        return { minX: 0, minY: 0, width: 1, height: 1 };
-    }
-
-    const geometries = nodes.map((node) => getGeometry(node));
-    const minX = Math.min(...geometries.map((geometry) => geometry.x));
-    const minY = Math.min(...geometries.map((geometry) => geometry.y));
-    const maxX = Math.max(
-        ...geometries.map((geometry) => geometry.x + geometry.width),
-    );
-    const maxY = Math.max(
-        ...geometries.map((geometry) => geometry.y + geometry.height),
-    );
-
-    return {
-        minX,
-        minY,
-        width: Math.max(maxX - minX, 1),
-        height: Math.max(maxY - minY, 1),
-    };
-}
-
 function getBoundsFromGeometries(geometries: Required<LayoutGeometry>[]): LayoutBounds {
     if (geometries.length === 0) {
         return { minX: 0, minY: 0, width: 1, height: 1 };
@@ -187,6 +165,7 @@ function getRenderGeometry(
     }
 
     const parent = nodesById.get(node.parent_id);
+
     if (parent === undefined) {
         return geometry;
     }
@@ -509,7 +488,7 @@ function LayoutPreviewCanvas({
     nodes: LayoutNode[];
     className?: string;
     templateType?: string | null;
-}): JSX.Element {
+}): ReactElement {
     const sortedNodes = sortLayoutNodes(nodes);
     const nodesById = new Map(sortedNodes.map((node) => [node.id, node]));
     const nodesByParentId = sortedNodes.reduce<Map<string, LayoutNode[]>>((map, node) => {
@@ -563,14 +542,11 @@ function LayoutPreviewCanvas({
                             templateType === 'mixed' &&
                             (node.node_type === 'seat' || node.node_type === 'table');
                         const minimumSize = mixedCircular ? 1.25 : 8;
-                        const diameter = mixedCircular
-                            ? Math.max(Math.min(widthPercent, heightPercent), minimumSize)
-                            : undefined;
                         const width = mixedCircular
-                            ? diameter
+                            ? Math.max(Math.min(widthPercent, heightPercent), minimumSize)
                             : Math.max(widthPercent, minimumSize);
                         const height = mixedCircular
-                            ? diameter
+                            ? Math.max(Math.min(widthPercent, heightPercent), minimumSize)
                             : Math.max(heightPercent, minimumSize);
                         const left = ((geometry.x - bounds.minX) / bounds.width) * 100;
                         const top = ((geometry.y - bounds.minY) / bounds.height) * 100;
@@ -656,7 +632,7 @@ function LayoutRelationTree({
     nodes,
 }: {
     nodes: LayoutTreeNode[];
-}): JSX.Element {
+}): ReactElement {
     if (nodes.length === 0) {
         return (
             <div className="rounded-2xl border border-dashed bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
@@ -752,20 +728,19 @@ export default function Layouts({ layouts }: { layouts: Paginated<Layout> }) {
     const [selectedLayoutId, setSelectedLayoutId] = useState<string | null>(
         layouts.data[0]?.id ?? null,
     );
+    const [previousLayoutsData, setPreviousLayoutsData] = useState(layouts.data);
     const [composerOpen, setComposerOpen] = useState<boolean>(false);
     const [expandedOpen, setExpandedOpen] = useState<boolean>(false);
 
-    useEffect(() => {
+    if (layouts.data !== previousLayoutsData) {
+        setPreviousLayoutsData(layouts.data);
+
         if (layouts.data.length === 0) {
             setSelectedLayoutId(null);
-
-            return;
-        }
-
-        if (!layouts.data.some((layout) => layout.id === selectedLayoutId)) {
+        } else if (!layouts.data.some((layout) => layout.id === selectedLayoutId)) {
             setSelectedLayoutId(layouts.data[0].id);
         }
-    }, [layouts.data, selectedLayoutId]);
+    }
 
     const selectedLayout =
         layouts.data.find((layout) => layout.id === selectedLayoutId) ??

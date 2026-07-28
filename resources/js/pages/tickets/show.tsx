@@ -45,7 +45,7 @@ export default function TicketShow({
                 >
                     <div
                         className={
-                            'bg-gradient-to-br from-amber-300 to-orange-500 p-8 text-zinc-950'
+                            'bg-gradient-to-br from-brand to-brand-dark p-8 text-white'
                         }
                     >
                         <p
