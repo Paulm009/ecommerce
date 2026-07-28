@@ -16,9 +16,13 @@ type Inventory = { available_quantity: number };
 type TicketType = {
     id: string;
     name: string;
-    code: string;
     base_price: string;
-    inventory: Inventory | null;
+    pivot?: {
+        price_override: string | null;
+    };
+};
+type LocationMetadata = {
+    price?: string;
 };
 type Location = {
     id: string;
@@ -26,12 +30,13 @@ type Location = {
     location_type: string;
     capacity: number;
     inventory: Inventory | null;
+    metadata_json: LocationMetadata | null;
+    ticketTypes: TicketType[];
 };
 type Occurrence = {
     id: string;
     starts_at: string;
     sales_end_at: string | null;
-    ticket_types: TicketType[];
     layout: { locations: Location[] };
 };
 type Event = {
@@ -41,6 +46,7 @@ type Event = {
     venue_name: string;
     venue_address: string | null;
     city: string | null;
+    cover_image_url: string | null;
     category: { name: string } | null;
     occurrences: Occurrence[];
 };
@@ -52,7 +58,6 @@ export default function EventShow({ event }: { event: Event }) {
         items: [
             {
                 event_location_id: occurrence?.layout.locations[0]?.id ?? '',
-                ticket_type_id: occurrence?.ticket_types[0]?.id ?? '',
                 quantity: 1,
             },
         ],
@@ -60,9 +65,13 @@ export default function EventShow({ event }: { event: Event }) {
     const selectedLocation = occurrence?.layout.locations.find(
         (item) => item.id === form.data.items[0].event_location_id,
     );
-    const selectedTicket = occurrence?.ticket_types.find(
-        (item) => item.id === form.data.items[0].ticket_type_id,
-    );
+    const selectedTicketType = selectedLocation?.ticketTypes?.[0];
+    const selectedTicketPrice = selectedTicketType
+        ? selectedTicketType.pivot?.price_override ??
+          selectedTicketType.base_price ??
+          selectedLocation?.metadata_json?.price ??
+          '0.00'
+        : selectedLocation?.metadata_json?.price ?? '0.00';
     const quantity = form.data.items[0].quantity;
     const setItem = (changes: Partial<(typeof form.data.items)[0]>) =>
         form.setData('items', [{ ...form.data.items[0], ...changes }]);
@@ -80,40 +89,52 @@ export default function EventShow({ event }: { event: Event }) {
             <Head title={event.name} />
             <section
                 className={
-                    'border-b border-white/10 bg-gradient-to-br from-fuchsia-700/35 via-zinc-950 to-amber-500/20'
+                    'relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-fuchsia-700/35 via-zinc-950 to-amber-500/20 text-white'
                 }
             >
+                {event.cover_image_url && (
+                    <img
+                        src={event.cover_image_url}
+                        alt={event.name}
+                        className={
+                            'absolute inset-0 h-full w-full object-cover opacity-35'
+                        }
+                    />
+                )}
+                <div className={'absolute inset-0 bg-zinc-950/45'} />
                 <div className={'mx-auto max-w-7xl px-4 py-16 sm:px-6'}>
                     <span
-                        className={'rounded-full bg-white/10 px-3 py-1 text-sm'}
+                        className={
+                            'rounded-full border border-white/25 bg-white/20 px-3 py-1 text-sm font-semibold text-white shadow-lg shadow-black/20'
+                        }
                     >
                         {event.category?.name ?? 'Evento'}
                     </span>
                     <h1
                         className={
-                            'mt-6 max-w-4xl text-5xl font-black tracking-tight sm:text-7xl'
+                            'mt-6 max-w-4xl text-5xl font-black tracking-tight text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.65)] sm:text-7xl'
                         }
                     >
                         {event.name}
                     </h1>
                     <p
                         className={
-                            'mt-6 max-w-2xl text-lg leading-8 text-zinc-300'
+                            'mt-6 max-w-2xl text-lg leading-8 text-zinc-100 drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]'
                         }
                     >
                         {event.short_description}
                     </p>
                     <div
                         className={
-                            'mt-8 flex flex-wrap gap-6 text-sm text-zinc-300'
+                            'mt-8 flex flex-wrap gap-6 text-sm font-medium text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]'
                         }
                     >
                         <span className={'flex gap-2'}>
-                            <CalendarDays className={'size-5 text-amber-300'} />
+                            <CalendarDays className={'size-5 text-amber-100 drop-shadow-sm'} />
                             {dateTime(occurrence.starts_at)}
                         </span>
                         <span className={'flex gap-2'}>
-                            <MapPin className={'size-5 text-amber-300'} />
+                            <MapPin className={'size-5 text-amber-100 drop-shadow-sm'} />
                             {event.venue_name}
                             {event.city ? `, ${event.city}` : ''}
                         </span>
@@ -126,18 +147,22 @@ export default function EventShow({ event }: { event: Event }) {
                 }
             >
                 <div>
-                    <h2 className={'text-2xl font-black'}>
-                        Elige tu ubicación
-                    </h2>
+                    <h2 className={'text-2xl font-black'}>Elige tu ubicación</h2>
                     <p className={'mt-2 text-zinc-400'}>
-                        La disponibilidad se bloquea durante 5 minutos al
-                        continuar.
+                        La disponibilidad se bloquea durante 5 minutos al continuar.
                     </p>
                     <div className={'mt-6 grid gap-3 sm:grid-cols-2'}>
                         {occurrence.layout.locations.map((location) => {
                             const selected =
                                 form.data.items[0].event_location_id ===
                                 location.id;
+                            const locationTicketType = location.ticketTypes?.[0];
+                            const locationTicketPrice = locationTicketType
+                                ? locationTicketType.pivot?.price_override ??
+                                  locationTicketType.base_price ??
+                                  location.metadata_json?.price ??
+                                  null
+                                : location.metadata_json?.price ?? null;
 
                             return (
                                 <button
@@ -154,15 +179,10 @@ export default function EventShow({ event }: { event: Event }) {
                                     }
                                     className={`rounded-xl border p-5 text-left transition ${selected ? 'border-amber-300 bg-amber-300/10' : 'border-white/10 bg-white/[.03] hover:border-white/25'} disabled:opacity-40`}
                                 >
-                                    <div
-                                        className={'flex justify-between gap-3'}
-                                    >
+                                    <div className={'flex justify-between gap-3'}>
                                         <strong>{location.label}</strong>
-                                        <span
-                                            className={'text-xs text-zinc-400'}
-                                        >
-                                            {location.inventory
-                                                ?.available_quantity ?? 0}{' '}
+                                        <span className={'text-xs text-zinc-400'}>
+                                            {location.inventory?.available_quantity ?? 0}{' '}
                                             disp.
                                         </span>
                                     </div>
@@ -171,44 +191,21 @@ export default function EventShow({ event }: { event: Event }) {
                                             'mt-2 text-sm text-zinc-400 capitalize'
                                         }
                                     >
-                                        {location.location_type} · capacidad{' '}
-                                        {location.capacity}
+                                        {location.location_type} · capacidad {location.capacity}
+                                    </p>
+                                    <p className={'mt-3 text-sm font-semibold text-amber-300'}>
+                                        {locationTicketPrice
+                                            ? money(locationTicketPrice)
+                                            : 'Sin precio asignado'}
                                     </p>
                                 </button>
                             );
                         })}
                     </div>
-                    <h2 className={'mt-10 text-2xl font-black'}>
-                        Tipo de entrada
-                    </h2>
-                    <div className={'mt-5 space-y-3'}>
-                        {occurrence.ticket_types.map((ticket) => (
-                            <button
-                                type={'button'}
-                                key={ticket.id}
-                                onClick={() =>
-                                    setItem({ ticket_type_id: ticket.id })
-                                }
-                                className={`flex w-full items-center justify-between rounded-xl border p-5 text-left ${form.data.items[0].ticket_type_id === ticket.id ? 'border-amber-300 bg-amber-300/10' : 'border-white/10 bg-white/[.03]'}`}
-                            >
-                                <span>
-                                    <strong>{ticket.name}</strong>
-                                    <small
-                                        className={'mt-1 block text-zinc-500'}
-                                    >
-                                        {ticket.code}
-                                    </small>
-                                </span>
-                                <strong className={'text-amber-300'}>
-                                    {money(ticket.base_price)}
-                                </strong>
-                            </button>
-                        ))}
-                    </div>
                     {event.description && (
                         <p
                             className={
-                                'mt-10 leading-8 whitespace-pre-line text-zinc-400'
+                                'mt-10 whitespace-pre-line leading-8 text-zinc-400'
                             }
                         >
                             {event.description}
@@ -231,7 +228,9 @@ export default function EventShow({ event }: { event: Event }) {
                         {selectedLocation?.label ?? 'Ubicación'}
                     </h3>
                     <p className={'mt-1 text-zinc-400'}>
-                        {selectedTicket?.name ?? 'Entrada'}
+                        {selectedTicketType
+                            ? `${money(selectedTicketPrice)} por unidad`
+                            : 'Selecciona una ubicación'}
                     </p>
                     <div
                         className={
@@ -249,8 +248,11 @@ export default function EventShow({ event }: { event: Event }) {
                                         quantity: Math.max(1, quantity - 1),
                                     })
                                 }
+                                className={
+                                    'border-white/20 bg-white/10 text-white shadow-sm hover:border-white/30 hover:bg-white/20 hover:text-white'
+                                }
                             >
-                                <Minus />
+                                <Minus className={'size-4'} />
                             </Button>
                             <Input
                                 value={quantity}
@@ -268,18 +270,18 @@ export default function EventShow({ event }: { event: Event }) {
                                         quantity: Math.min(20, quantity + 1),
                                     })
                                 }
+                                className={
+                                    'border-white/20 bg-white/10 text-white shadow-sm hover:border-white/30 hover:bg-white/20 hover:text-white'
+                                }
                             >
-                                <Plus />
+                                <Plus className={'size-4'} />
                             </Button>
                         </div>
                     </div>
                     <div className={'flex justify-between py-6 text-lg'}>
                         <span>Total</span>
                         <strong>
-                            {money(
-                                Number(selectedTicket?.base_price ?? 0) *
-                                    quantity,
-                            )}
+                            {money(Number(selectedTicketPrice) * quantity)}
                         </strong>
                     </div>
                     <Button
@@ -288,8 +290,7 @@ export default function EventShow({ event }: { event: Event }) {
                         }
                         disabled={
                             form.processing ||
-                            !selectedLocation ||
-                            !selectedTicket
+                            !selectedLocation
                         }
                         onClick={() =>
                             form.post(reservations.store(occurrence.id).url)

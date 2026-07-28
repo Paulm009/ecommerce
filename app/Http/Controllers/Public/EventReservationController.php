@@ -22,7 +22,7 @@ final class EventReservationController extends Controller
         $data = $request->validated();
         $reservation = $createReservation->handle($occurrence, $data['items'], $data['session_token'], $request->user()?->id);
 
-        return to_route('reservations.show', $reservation);
+        return to_route('reservations.show', ['reservation' => $reservation->id]);
     }
 
     public function show(TicketReservation $reservation): Response
@@ -36,6 +36,6 @@ final class EventReservationController extends Controller
     {
         $paymentAttempt = $confirmReservation->handle($reservation, $request->validated());
 
-        return to_route('payments.show', $paymentAttempt);
+        return to_route('payments.show', ['paymentAttempt' => $paymentAttempt->id]);
     }
 }

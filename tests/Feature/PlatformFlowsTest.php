@@ -189,6 +189,17 @@ it('renders every administration and operations console', function (): void {
     }
 });
 
+it('allows the public ticket view when the signed token is valid even if the stored hash is stale', function (): void {
+    $ticket = Ticket::query()->firstOrFail();
+    $token = app(TicketQrToken::class)->for($ticket->id);
+
+    $ticket->update([
+        'qr_token_hash' => str_repeat('0', 64),
+    ]);
+
+    $this->get(route('tickets.show', ['ticket' => $ticket, 'token' => $token]))->assertOk();
+});
+
 it('manages event states and promotion codes', function (): void {
     $admin = User::query()->where('email', 'admin@example.com')->firstOrFail();
     $event = Event::query()->where('status', 'draft')->firstOrFail();

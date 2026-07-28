@@ -50,15 +50,66 @@ final class DemoCatalogSeeder extends Seeder
     private function createLayouts(Company $company, User $admin): void
     {
         $definitions = [
-            'Auditorio numerado' => [['platea-a', 'Platea A', 'seat_group', 80, 'individual'], ['platea-b', 'Platea B', 'seat_group', 80, 'individual'], ['balcon', 'Balcón', 'seat_group', 60, 'individual']],
-            'Teatro clásico' => [['vip', 'Palco VIP', 'box', 40, 'individual'], ['orquesta', 'Orquesta', 'seat_group', 120, 'individual'], ['galeria', 'Galería', 'seat_group', 80, 'individual']],
-            'Mesas y boxes' => [['mesa-oro', 'Mesa Oro', 'table', 60, 'group'], ['mesa-plata', 'Mesa Plata', 'table', 80, 'group'], ['boxes', 'Boxes', 'box', 40, 'group']],
-            'Campo general' => [['campo', 'Campo general', 'zone', 500, 'individual'], ['graderia', 'Gradería', 'zone', 250, 'individual']],
-            'Recinto mixto' => [['campo-vip', 'Campo VIP', 'zone', 120, 'individual'], ['campo-general', 'Campo general', 'zone', 300, 'individual'], ['mesas', 'Mesas', 'table', 80, 'group']],
+            'Auditorio numerado' => [
+                'template_type' => 'sectors',
+                'nodes' => [
+                    ['platea-a', 'Platea A', 'seat_group', 80, 'individual'],
+                    ['platea-b', 'Platea B', 'seat_group', 80, 'individual'],
+                    ['balcon', 'Balcón', 'seat_group', 60, 'individual'],
+                ],
+            ],
+            'Teatro clásico' => [
+                'template_type' => 'sectors',
+                'nodes' => [
+                    ['vip', 'Palco VIP', 'box', 40, 'individual'],
+                    ['orquesta', 'Orquesta', 'seat_group', 120, 'individual'],
+                    ['galeria', 'Galería', 'seat_group', 80, 'individual'],
+                ],
+            ],
+            'Mesas y boxes' => [
+                'template_type' => 'mixed',
+                'nodes' => [
+                    ['mesa-oro', 'Mesa Oro', 'table', 60, 'group'],
+                    ['mesa-plata', 'Mesa Plata', 'table', 80, 'group'],
+                    ['boxes', 'Boxes', 'box', 40, 'group'],
+                ],
+            ],
+            'Campo general' => [
+                'template_type' => 'sectors',
+                'nodes' => [
+                    ['campo', 'Campo general', 'zone', 500, 'individual'],
+                    ['graderia', 'Gradería', 'zone', 250, 'individual'],
+                ],
+            ],
+            'Recinto mixto' => [
+                'template_type' => 'mixed',
+                'nodes' => [
+                    ['campo-vip', 'Campo VIP', 'zone', 120, 'individual'],
+                    ['campo-general', 'Campo general', 'zone', 300, 'individual'],
+                    ['mesas', 'Mesas', 'table', 80, 'group'],
+                ],
+            ],
         ];
 
-        foreach ($definitions as $name => $nodes) {
-            $source = ['schema_version' => '1.0', 'nodes' => array_map(fn (array $node, int $index): array => ['key' => $node[0], 'label' => $node[1], 'type' => $node[2], 'capacity' => $node[3], 'selectable' => true, 'sale_mode' => $node[4], 'geometry' => ['x' => 20 + ($index * 140), 'y' => 40, 'width' => 120, 'height' => 100]], $nodes, array_keys($nodes))];
+        foreach ($definitions as $name => $definition) {
+            $nodes = $definition['nodes'];
+            $source = [
+                'schema_version' => '2.0',
+                'template_type' => $definition['template_type'],
+                'nodes' => array_map(
+                    static fn (array $node, int $index): array => [
+                        'key' => $node[0],
+                        'label' => $node[1],
+                        'type' => $node[2],
+                        'capacity' => $node[3],
+                        'selectable' => true,
+                        'sale_mode' => $node[4],
+                        'geometry' => ['x' => 20 + ($index * 140), 'y' => 40, 'width' => 120, 'height' => 100],
+                    ],
+                    $nodes,
+                    array_keys($nodes),
+                ),
+            ];
             $encoded = json_encode($source, JSON_THROW_ON_ERROR);
             $media = MediaAsset::query()->create([
                 'company_id' => $company->id,
@@ -73,8 +124,9 @@ final class DemoCatalogSeeder extends Seeder
             $template = LayoutTemplate::query()->create([
                 'company_id' => $company->id,
                 'name' => $name,
+                'template_type' => $definition['template_type'],
                 'version' => 1,
-                'schema_version' => '1.0',
+                'schema_version' => '2.0',
                 'source_media_id' => $media->id,
                 'source_json' => $source,
                 'checksum_sha256' => hash('sha256', $encoded),

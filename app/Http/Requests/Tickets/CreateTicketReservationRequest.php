@@ -20,7 +20,7 @@ final class CreateTicketReservationRequest extends FormRequest
             'session_token' => ['required', 'string', 'min:20', 'max:180'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.event_location_id' => ['required', 'uuid', Rule::exists('event_locations', 'id')],
-            'items.*.ticket_type_id' => ['required', 'uuid', Rule::exists('ticket_types', 'id')],
+            'items.*.ticket_type_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('ticket_types', 'id')],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
         ];
     }

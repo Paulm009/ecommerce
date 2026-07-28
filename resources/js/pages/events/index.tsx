@@ -15,6 +15,7 @@ type EventItem = {
     short_description: string | null;
     venue_name: string;
     city: string | null;
+    cover_image_url: string | null;
     category: { name: string } | null;
     occurrences: { starts_at: string }[];
 };
@@ -111,17 +112,39 @@ export default function EventIndex({
                                 'group overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] transition hover:-translate-y-1 hover:border-amber-300/40'
                             }
                         >
-                            <div
-                                className={`aspect-[16/10] bg-gradient-to-br ${['from-fuchsia-600 to-orange-400', 'from-cyan-500 to-blue-700', 'from-emerald-500 to-lime-400'][index % 3]} p-6`}
-                            >
+                            <div className={'relative aspect-[16/10] overflow-hidden bg-zinc-900'}>
+                                {event.cover_image_url ? (
+                                    <img
+                                        src={event.cover_image_url}
+                                        alt={event.name}
+                                        className={
+                                            'absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105'
+                                        }
+                                    />
+                                ) : (
+                                    <div
+                                        className={`absolute inset-0 bg-gradient-to-br ${['from-fuchsia-600 to-orange-400', 'from-cyan-500 to-blue-700', 'from-emerald-500 to-lime-400'][index % 3]}`}
+                                    />
+                                )}
+                                <div
+                                    className={
+                                        'absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent'
+                                    }
+                                />
                                 <span
                                     className={
-                                        'rounded-full bg-black/25 px-3 py-1 text-xs font-bold'
+                                        'absolute top-4 left-4 rounded-full bg-black/45 px-3 py-1 text-xs font-bold backdrop-blur'
                                     }
                                 >
                                     {event.category?.name ?? 'Experiencia'}
                                 </span>
-                                <CalendarDays className={'mt-20 size-9'} />
+                                {!event.cover_image_url && (
+                                    <CalendarDays
+                                        className={
+                                            'absolute right-4 bottom-4 size-9'
+                                        }
+                                    />
+                                )}
                             </div>
                             <div className={'p-6'}>
                                 <p

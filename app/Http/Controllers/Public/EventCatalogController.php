@@ -24,13 +24,38 @@ final class EventCatalogController extends Controller
 
         $events = Event::query()
             ->select(['id', 'event_category_id', 'public_code', 'name', 'slug', 'short_description', 'venue_name', 'city', 'published_at'])
-            ->with(['category:id,name,slug', 'occurrences' => fn ($query) => $query->select(['id', 'event_id', 'starts_at', 'sales_end_at', 'status'])->where('status', EventStatus::Published)->where('starts_at', '>=', now())->oldest('starts_at')])
+            ->with([
+                'category:id,name,slug',
+                'coverMedia',
+                'occurrences' => fn ($query) => $query
+                    ->select(['id', 'event_id', 'starts_at', 'sales_start_at', 'sales_end_at', 'status'])
+                    ->where('status', EventStatus::Published)
+                    ->where(function ($query): void {
+                        $query->whereNull('sales_start_at')
+                            ->orWhere('sales_start_at', '<=', now());
+                    })
+                    ->where(function ($query): void {
+                        $query->whereNull('sales_end_at')
+                            ->orWhere('sales_end_at', '>=', now());
+                    })
+                    ->oldest('starts_at'),
+            ])
             ->where('company_id', $company->id)
             ->published()
             ->when($search !== '', fn ($query) => $query->whereLike('name', '%'.$search.'%'))
             ->when($category !== '', fn ($query) => $query->whereIn('event_category_id', EventCategory::query()->where('slug', $category)->select('id')))
             ->when($city !== '', fn ($query) => $query->whereLike('city', '%'.$city.'%'))
-            ->whereHas('occurrences', fn ($query) => $query->where('status', EventStatus::Published)->where('starts_at', '>=', now()))
+            ->whereHas('occurrences', function ($query): void {
+                $query->where('status', EventStatus::Published)
+                    ->where(function ($query): void {
+                        $query->whereNull('sales_start_at')
+                            ->orWhere('sales_start_at', '<=', now());
+                    })
+                    ->where(function ($query): void {
+                        $query->whereNull('sales_end_at')
+                            ->orWhere('sales_end_at', '>=', now());
+                    });
+            })
             ->latest('published_at')
             ->paginate(12)
             ->withQueryString();
@@ -47,10 +72,24 @@ final class EventCatalogController extends Controller
         abort_unless($event->status === EventStatus::Published, 404);
         $event->load([
             'category:id,name',
-            'occurrences' => fn ($query) => $query->where('status', EventStatus::Published)->where('starts_at', '>=', now())->with([
-                'ticketTypes' => fn ($tickets) => $tickets->where('is_active', true)->with('inventory'),
-                'layout.locations' => fn ($locations) => $locations->where('is_visible', true)->where('is_enabled', true)->with(['inventory', 'ticketTypes:id,name,base_price']),
-            ])->oldest('starts_at'),
+            'coverMedia',
+            'occurrences' => fn ($query) => $query
+                ->where('status', EventStatus::Published)
+                ->where(function ($query): void {
+                    $query->whereNull('sales_start_at')
+                        ->orWhere('sales_start_at', '<=', now());
+                })
+                ->where(function ($query): void {
+                    $query->whereNull('sales_end_at')
+                        ->orWhere('sales_end_at', '>=', now());
+                })
+                ->with([
+                    'layout.locations' => fn ($locations) => $locations->where('is_visible', true)->where('is_enabled', true)->with([
+                        'inventory',
+                        'ticketTypes' => fn ($tickets) => $tickets->wherePivot('is_active', true)->orderBy('event_location_ticket_types.created_at')->select(['ticket_types.id', 'ticket_types.name', 'ticket_types.base_price']),
+                    ]),
+                ])
+                ->oldest('starts_at'),
         ]);
 
         return Inertia::render('events/show', ['event' => $event]);
