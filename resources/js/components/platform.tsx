@@ -76,6 +76,12 @@ export function Panel({
 }
 
 export function StateBadge({ status }: { status: string }) {
+    const eventStatusClassName = {
+        draft: 'border-yellow-200 bg-yellow-100 text-yellow-900 dark:border-yellow-900/40 dark:bg-yellow-950/40 dark:text-yellow-100',
+        published: 'border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-100',
+        finished: 'border-slate-300 bg-slate-200 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100',
+        cancelled: 'border-red-200 bg-red-100 text-red-900 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-100',
+    }[status];
     const positive = [
         'active',
         'published',
@@ -98,8 +104,15 @@ export function StateBadge({ status }: { status: string }) {
     return (
         <Badge
             variant={
-                danger ? 'destructive' : positive ? 'default' : 'secondary'
+                eventStatusClassName
+                    ? 'outline'
+                    : danger
+                      ? 'destructive'
+                      : positive
+                        ? 'default'
+                        : 'secondary'
             }
+            className={eventStatusClassName}
         >
             {statusLabel(status)}
         </Badge>

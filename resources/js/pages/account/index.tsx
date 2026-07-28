@@ -44,7 +44,7 @@ export default function Account({
                 <div className={'mx-auto max-w-7xl px-4 py-14 sm:px-6'}>
                     <span
                         className={
-                            'text-sm font-bold tracking-[0.2em] text-amber-300 uppercase'
+                            'text-sm font-bold tracking-[0.2em] text-brand-light uppercase'
                         }
                     >
                         Portal del cliente
@@ -65,7 +65,7 @@ export default function Account({
             >
                 <section>
                     <div className={'mb-4 flex items-center gap-3'}>
-                        <TicketCheck className={'text-amber-300'} />
+                        <TicketCheck className={'text-brand-light'} />
                         <h2 className={'text-2xl font-black'}>Entradas</h2>
                     </div>
                     <div className={'space-y-4'}>
@@ -119,7 +119,7 @@ export default function Account({
                                         asChild
                                         size={'sm'}
                                         className={
-                                            'bg-amber-400 text-zinc-950 hover:bg-amber-300'
+                                            'bg-brand text-white hover:bg-brand-hover'
                                         }
                                     >
                                         <Link href={ticket.url}>
@@ -142,7 +142,7 @@ export default function Account({
                 </section>
                 <section>
                     <div className={'mb-4 flex items-center gap-3'}>
-                        <PackageCheck className={'text-amber-300'} />
+                        <PackageCheck className={'text-brand-light'} />
                         <h2 className={'text-2xl font-black'}>Pedidos</h2>
                     </div>
                     <div className={'space-y-4'}>

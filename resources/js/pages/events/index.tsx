@@ -15,6 +15,7 @@ type EventItem = {
     short_description: string | null;
     venue_name: string;
     city: string | null;
+    cover_image_url: string | null;
     category: { name: string } | null;
     occurrences: { starts_at: string }[];
 };
@@ -44,13 +45,13 @@ export default function EventIndex({
             <Head title={'Eventos'} />
             <section
                 className={
-                    'border-b border-white/10 bg-gradient-to-b from-amber-400/10 to-transparent'
+                    'border-b border-white/10 bg-gradient-to-b from-brand/15 to-transparent'
                 }
             >
                 <div className={'mx-auto max-w-7xl px-4 py-16 sm:px-6'}>
                     <p
                         className={
-                            'text-sm font-bold tracking-[.25em] text-amber-400 uppercase'
+                            'text-sm font-bold tracking-[.25em] text-brand uppercase'
                         }
                     >
                         Agenda
@@ -93,7 +94,7 @@ export default function EventIndex({
                         </select>
                         <Button
                             className={
-                                'bg-amber-400 text-zinc-950 hover:bg-amber-300'
+                                'bg-brand text-white hover:bg-brand-hover'
                             }
                         >
                             Buscar
@@ -108,25 +109,51 @@ export default function EventIndex({
                             key={event.id}
                             href={eventsRoutes.show(event.slug)}
                             className={
-                                'group overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] transition hover:-translate-y-1 hover:border-amber-300/40'
+                                'group overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] transition hover:-translate-y-1 hover:border-brand/50'
                             }
                         >
                             <div
-                                className={`aspect-[16/10] bg-gradient-to-br ${['from-fuchsia-600 to-orange-400', 'from-cyan-500 to-blue-700', 'from-emerald-500 to-lime-400'][index % 3]} p-6`}
+                                className={
+                                    'relative aspect-[16/10] overflow-hidden bg-zinc-900'
+                                }
                             >
+                                {event.cover_image_url ? (
+                                    <img
+                                        src={event.cover_image_url}
+                                        alt={event.name}
+                                        className={
+                                            'absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105'
+                                        }
+                                    />
+                                ) : (
+                                    <div
+                                        className={`absolute inset-0 bg-gradient-to-br ${['from-fuchsia-600 to-orange-400', 'from-cyan-500 to-blue-700', 'from-emerald-500 to-lime-400'][index % 3]}`}
+                                    />
+                                )}
+                                <div
+                                    className={
+                                        'absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent'
+                                    }
+                                />
                                 <span
                                     className={
-                                        'rounded-full bg-black/25 px-3 py-1 text-xs font-bold'
+                                        'absolute top-4 left-4 rounded-full bg-black/45 px-3 py-1 text-xs font-bold backdrop-blur'
                                     }
                                 >
                                     {event.category?.name ?? 'Experiencia'}
                                 </span>
-                                <CalendarDays className={'mt-20 size-9'} />
+                                {!event.cover_image_url && (
+                                    <CalendarDays
+                                        className={
+                                            'absolute right-4 bottom-4 size-9'
+                                        }
+                                    />
+                                )}
                             </div>
                             <div className={'p-6'}>
                                 <p
                                     className={
-                                        'text-sm font-semibold text-amber-300'
+                                        'text-sm font-semibold text-brand-light'
                                     }
                                 >
                                     {event.occurrences[0]
@@ -137,7 +164,7 @@ export default function EventIndex({
                                 </p>
                                 <h2
                                     className={
-                                        'mt-2 text-2xl font-black group-hover:text-amber-300'
+                                        'mt-2 text-2xl font-black group-hover:text-brand-light'
                                     }
                                 >
                                     {event.name}
