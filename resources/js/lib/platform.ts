@@ -16,7 +16,10 @@ export const dateTime = (value: string) =>
     new Intl.DateTimeFormat('es-BO', {
         dateStyle: 'medium',
         timeStyle: 'short',
-    }).format(new Date(value));
+        timeZone: 'America/La_Paz',
+    })
+        .format(new Date(value))
+        .replace(/[\u00A0\u202F]/g, ' ');
 
 export const sessionToken = () => {
     if (typeof window === 'undefined') {
@@ -39,6 +42,8 @@ export const statusLabel = (status: string) =>
     ({
         draft: 'Borrador',
         published: 'Publicado',
+        finished: 'Finalizado',
+        cancelled: 'Cancelado',
         active: 'Activo',
         inactive: 'Inactivo',
         paid: 'Pagado',

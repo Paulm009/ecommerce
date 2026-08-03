@@ -21,7 +21,7 @@ export default function Welcome() {
             >
                 <div
                     className={
-                        'absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,.22),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(244,63,94,.16),transparent_35%)]'
+                        'absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(209,31,22,.28),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(124,25,22,.22),transparent_40%)]'
                     }
                 />
                 <div
@@ -32,7 +32,7 @@ export default function Welcome() {
                     <div>
                         <div
                             className={
-                                'mb-6 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm text-amber-200'
+                                'mb-6 inline-flex items-center gap-2 rounded-full border border-brand-light/30 bg-brand/10 px-4 py-2 text-sm text-brand-light'
                             }
                         >
                             <Sparkles className={'size-4'} /> Tu próxima
@@ -44,7 +44,7 @@ export default function Welcome() {
                             }
                         >
                             Vive el evento.{' '}
-                            <span className={'text-amber-400'}>
+                            <span className={'text-brand'}>
                                 Nosotros resolvemos el resto.
                             </span>
                         </h1>
@@ -63,7 +63,7 @@ export default function Welcome() {
                                 asChild
                                 size={'lg'}
                                 className={
-                                    'bg-amber-400 text-zinc-950 hover:bg-amber-300'
+                                    'bg-brand text-white hover:bg-brand-hover'
                                 }
                             >
                                 <Link href={events.index()}>
@@ -85,12 +85,12 @@ export default function Welcome() {
                     <div className={'relative mx-auto w-full max-w-lg'}>
                         <div
                             className={
-                                'rotate-2 rounded-[2rem] border border-white/15 bg-white/[.07] p-5 shadow-2xl backdrop-blur'
+                                'rotate-2 rounded-[2rem] border border-white/15 bg-white/[.07] p-5 shadow-2xl shadow-brand/20 backdrop-blur'
                             }
                         >
                             <div
                                 className={
-                                    'aspect-[4/3] rounded-[1.4rem] bg-gradient-to-br from-rose-500 via-orange-400 to-amber-300 p-8 text-zinc-950'
+                                    'aspect-[4/3] rounded-[1.4rem] bg-gradient-to-br from-brand via-brand-dark to-black p-8 text-white'
                                 }
                             >
                                 <CalendarDays className={'size-12'} />
@@ -113,7 +113,7 @@ export default function Welcome() {
                                 <span>
                                     <TicketCheck
                                         className={
-                                            'mx-auto mb-2 text-amber-300'
+                                            'mx-auto mb-2 text-brand-light'
                                         }
                                     />
                                     Elige
@@ -121,7 +121,7 @@ export default function Welcome() {
                                 <span>
                                     <CreditCard
                                         className={
-                                            'mx-auto mb-2 text-amber-300'
+                                            'mx-auto mb-2 text-brand-light'
                                         }
                                     />
                                     Paga
@@ -129,7 +129,7 @@ export default function Welcome() {
                                 <span>
                                     <ScanLine
                                         className={
-                                            'mx-auto mb-2 text-amber-300'
+                                            'mx-auto mb-2 text-brand-light'
                                         }
                                     />
                                     Ingresa
@@ -142,7 +142,7 @@ export default function Welcome() {
             <section className={'mx-auto max-w-7xl px-4 py-20 sm:px-6'}>
                 <p
                     className={
-                        'text-sm font-bold tracking-[.25em] text-amber-400 uppercase'
+                        'text-sm font-bold tracking-[.25em] text-brand uppercase'
                     }
                 >
                     Plataforma integral
@@ -170,12 +170,10 @@ export default function Welcome() {
                         <article
                             key={title}
                             className={
-                                'rounded-2xl border border-white/10 bg-white/[.03] p-7'
+                                'rounded-2xl border border-white/10 bg-white/[.03] p-7 transition hover:border-brand/40'
                             }
                         >
-                            <span
-                                className={'text-sm font-black text-amber-400'}
-                            >
+                            <span className={'text-sm font-black text-brand'}>
                                 0{index + 1}
                             </span>
                             <h3 className={'mt-8 text-xl font-bold'}>

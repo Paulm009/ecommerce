@@ -1,4 +1,4 @@
-<laravel-boost-guidelines>
+﻿<laravel-boost-guidelines>
 === foundation rules ===
 
 # Laravel Boost Guidelines
@@ -32,13 +32,14 @@ This application is a Laravel application and its main Laravel ecosystems packag
 
 ## Skills Activation
 
-This project has domain-specific skills available in `**/skills/**`. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
+This project has domain-specific skills available in `**/skills/**`. You MUST activate the relevant skill whenever you work in that domain. Do not wait until you're stuck.
 
 ## Conventions
 
 - You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, and naming.
 - Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
 - Check for existing components to reuse before writing a new one.
+- Preserve existing Spanish accents and punctuation in user-facing copy. Do not normalize or rewrite text unless the user explicitly asks for that text to change. Keep files encoded as UTF-8.
 
 ## Verification Scripts
 
@@ -205,3 +206,5 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 - IMPORTANT: Activate `inertia-react-development` when working with Inertia React client-side patterns.
 
 </laravel-boost-guidelines>
+
+

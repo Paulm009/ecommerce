@@ -5,7 +5,6 @@ import {
     Menu,
     ShoppingBag,
     ShoppingCart,
-    Ticket,
     X,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -26,10 +25,10 @@ export default function PublicLayout({
         auth.user?.user_type === 'customer' ? account() : dashboard();
 
     return (
-        <div className={'min-h-screen bg-zinc-950 text-zinc-100'}>
+        <div className={'min-h-screen bg-black text-white'}>
             <header
                 className={
-                    'sticky top-0 z-50 border-b border-white/10 bg-zinc-950/90 backdrop-blur-xl'
+                    'sticky top-0 z-50 border-b border-white/10 bg-black/90 backdrop-blur-xl'
                 }
             >
                 <div
@@ -39,18 +38,21 @@ export default function PublicLayout({
                 >
                     <Link
                         href={home()}
-                        className={
-                            'flex items-center gap-2 font-black tracking-tight'
-                        }
+                        className={'flex items-center gap-2.5'}
+                        aria-label={'TiketMark · Inicio'}
                     >
+                        <img
+                            src={'/logo.svg'}
+                            alt={'TiketMark'}
+                            className={'h-9 w-auto'}
+                        />
                         <span
                             className={
-                                'grid size-9 place-items-center rounded-xl bg-amber-400 text-zinc-950'
+                                'text-xl font-black tracking-tight text-brand'
                             }
                         >
-                            <Ticket className={'size-5'} />
+                            TiketMark
                         </span>
-                        <span>EVENTA</span>
                     </Link>
                     <nav
                         className={
@@ -60,7 +62,7 @@ export default function PublicLayout({
                         <Link
                             href={events.index()}
                             className={
-                                'text-zinc-300 transition hover:text-amber-300'
+                                'text-zinc-300 transition hover:text-white'
                             }
                         >
                             Eventos
@@ -68,7 +70,7 @@ export default function PublicLayout({
                         <Link
                             href={store.index()}
                             className={
-                                'text-zinc-300 transition hover:text-amber-300'
+                                'text-zinc-300 transition hover:text-white'
                             }
                         >
                             Tienda
@@ -76,7 +78,7 @@ export default function PublicLayout({
                         <Link
                             href={store.cart()}
                             className={
-                                'text-zinc-300 transition hover:text-amber-300'
+                                'text-zinc-300 transition hover:text-white'
                             }
                         >
                             Carrito
@@ -100,7 +102,7 @@ export default function PublicLayout({
                             <Button
                                 asChild
                                 className={
-                                    'bg-amber-400 text-zinc-950 hover:bg-amber-300'
+                                    'bg-brand text-white hover:bg-brand-hover'
                                 }
                             >
                                 <Link href={login()}>Ingresar</Link>
@@ -169,7 +171,7 @@ export default function PublicLayout({
                     'border-t border-white/10 py-10 text-center text-sm text-zinc-500'
                 }
             >
-                EVENTA · Eventos, entradas y productos en un solo lugar.
+                TiketMark · Eventos, entradas y productos en un solo lugar.
             </footer>
         </div>
     );

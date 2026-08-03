@@ -1,142 +1,171 @@
-# Design system
+# TiketMark — Design System
 
 ## Visual direction
 
-The platform is a daily operations tool. It must feel professional, stable, fast, and
-precise. Clarity takes priority over decoration.
+TiketMark is a ticketing and event-commerce platform. Its interface is inspired by
+Netflix: **dark-first, cinematic, content-forward**. The screen belongs to the
+events — the UI frames them, never competes with them.
+
+Three words define the look:
+
+1. **Cinematic:** pure-black canvases, large imagery, generous hero typography.
+2. **Bold:** one accent color, used with intent. Red means action.
+3. **Effortless:** the next step is always obvious; nothing decorative blocks it.
 
 The interface avoids:
 
-- decorative gradients without function;
-- glassmorphism;
-- excessive shadows;
-- exaggerated border radii;
-- large empty spaces on work screens;
-- different colors for elements representing the same action;
+- accent colors other than brand red for interactive affordances;
+- gradients without a narrative purpose (only hero glows and image legibility scrims);
+- glassmorphism on work screens;
+- mixed border radii or ad-hoc shadows;
 - invented components when shadcn/ui already provides the right pattern.
 
-## Principles
+## Brand
 
-1. **Clear hierarchy:** the title, status, and primary action are immediately identifiable.
-2. **Controlled density:** enough information to operate without overwhelming.
-3. **Consistency:** an action is represented the same way across all modules.
-4. **Immediate feedback:** every operation communicates loading, success, or error.
-5. **Accessibility:** keyboard, visible focus, labels, and adequate contrast.
-6. **Real responsive:** information remains usable on small screens.
+- **Name:** TiketMark (no "c"). Always written exactly like this.
+- **Logo:** red ticket with the "TM" monogram (`public/logo.svg`).
+- **Wordmark:** `TiketMark` in brand red, `font-black tracking-tight`, next to the logo.
+- **Icon set:** favicon package installed in `public/` (`favicon.ico`, `favicon.svg`,
+  `favicon-96x96.png`, `apple-touch-icon.png`, `site.webmanifest`,
+  `web-app-manifest-192x192.png`, `web-app-manifest-512x512.png`).
 
-## Visual source
+## Color
 
-- `components.json` defines shadcn/ui implementation and style.
-- Existing components in `resources/js/components/ui` are the first choice.
-- Colors are expressed through semantic theme variables.
-- Do not switch between Base UI and Radix within the same project.
-- Icons use the already-configured library, typically Lucide.
-- Dark mode must maintain the same hierarchy and legibility.
+### Core palette
+
+| Token         | Hex       | Role                                              |
+| ------------- | --------- | ------------------------------------------------- |
+| `brand`       | `#d11f16` | Primary action, brand accent, wordmark            |
+| `night`       | `#000000` | Dark canvas (Netflix black)                       |
+| —             | `#ffffff` | Primary text on dark, light canvas                |
+| `smoke`       | `#554e4d` | Warm gray: muted text on light, subtle neutrals   |
+| `brand-dark`  | `#7c1916` | Deep red: gradients, pressed states, depth        |
+
+### Extended palette
+
+Derived tones that complete the system (defined in `resources/css/app.css`):
+
+| Token           | Hex       | Role                                                   |
+| --------------- | --------- | ------------------------------------------------------ |
+| `brand-hover`   | `#b81912` | Hover on solid red buttons                             |
+| `brand-light`   | `#f0554d` | Small accent text/icons on black (passes contrast)     |
+| `smoke-light`   | `#a9a3a2` | Muted text on dark                                     |
+| `night-soft`    | `#141414` | Cards/popovers on dark                                 |
+| `night-raise`   | `#1f1c1c` | Raised surfaces, secondary fills on dark               |
+
+### Usage rules
+
+- **Red is reserved for action and brand.** Primary buttons, the wordmark, key
+  accents. Never use red for decoration or for large background fills.
+- On black, use `text-brand-light` for small accent text (eyebrows, dates, icons);
+  `#d11f16` on black does not meet contrast for small text — reserve it for
+  large/bold elements, solid fills, and borders.
+- Solid primary buttons: `bg-brand text-white hover:bg-brand-hover`.
+- Tinted brand surfaces: `bg-brand/10`, hover borders `border-brand/40`–`border-brand/50`.
+- Hero glows use the two reds at low opacity:
+  `bg-[radial-gradient(circle_at_top_right,rgba(209,31,22,.28),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(124,25,22,.22),transparent_40%)]`.
+
+### Functional colors (not brand)
+
+Status semantics stay independent of the accent:
+
+- **Warning / pending / countdown:** amber (`text-amber-400`, `bg-amber-300/10`).
+- **Error / expired:** red-tailwind (`text-red-300`, `bg-red-500/10`) — acceptable
+  because it always carries an icon or label, never a CTA.
+- **Info:** blue. **Success:** green.
+- Never rely on color alone: every status pairs color with text or an icon.
+
+### Semantic tokens
+
+All theming flows through the CSS variables in `resources/css/app.css`
+(`--primary`, `--background`, `--card`, `--muted-foreground`, …). Light theme is a
+clean white surface with red primary; dark theme is the Netflix black system.
+Component code must consume semantic utilities (`bg-primary`, `text-muted-foreground`)
+and brand utilities (`bg-brand`, `text-brand-light`) — never raw palette classes
+(`red-600`, `zinc-*`) in new shared components. Public marketing pages may keep
+explicit `white/*` transparency utilities over the black canvas.
 
 ## Typography
 
-- Sans-serif font configured by the project.
-- Page titles: `text-2xl font-semibold tracking-tight`.
-- Section titles: `text-lg font-semibold`.
-- Body text: `text-sm` or `text-base` depending on context.
-- Secondary information: `text-sm text-muted-foreground`.
-- Table and form labels: legible, not decorative.
-- Financial amounts and quantities must align and format consistently.
+- Font: Instrument Sans (system fallback stack).
+- Hero title: `text-5xl sm:text-7xl font-black tracking-[-.05em] leading-[.95]`.
+- Page title (app): `text-2xl font-semibold tracking-tight`.
+- Section title: `text-lg font-semibold`; marketing sections may use
+  `text-3xl sm:text-5xl font-black`.
+- Eyebrow / kicker: `text-sm font-bold uppercase tracking-[.25em]` in `text-brand`
+  or `text-brand-light`.
+- Body: `text-sm`/`text-base`; secondary: `text-sm text-zinc-400` on dark,
+  `text-muted-foreground` in app screens.
+- Amounts and quantities align right and use tabular formatting.
 
 ## Spacing & geometry
 
-- Page container: `space-y-6`.
-- Horizontal padding: `px-4 sm:px-6 lg:px-8`.
-- Section separation: `gap-6`.
-- Forms: `gap-4`.
-- Cards: `p-4 sm:p-6`.
-- Controls: height consistent with project components.
-- Use the theme-defined radius; do not mix arbitrary radii.
-- An admin page should not nest cards unnecessarily.
+- Page container: `space-y-6`; marketing sections: `py-16`–`py-20`.
+- Horizontal padding: `px-4 sm:px-6`, max width `max-w-7xl`.
+- Cards: `rounded-2xl border border-white/10 bg-white/[.03]` on dark;
+  `p-4 sm:p-6` (marketing cards `p-7`).
+- Radius from theme (`--radius`); marketing heroes may use `rounded-[2rem]`.
+- Elevation is expressed through borders and surface tints, not heavy shadows;
+  a soft `shadow-brand/20` is allowed on hero showpieces.
 
-## Page structure
+## Netflix-inspired patterns
 
-```text
-App Shell
-└── Page Container
-    ├── Page Header
-    │   ├── Optional breadcrumbs
-    │   ├── Title and description
-    │   └── Primary action
-    ├── Feedback or alerts
-    ├── Summary/KPIs when valuable
-    ├── Search and filter toolbar
-    └── Main content
-```
+### Sticky top navigation
 
-## Patterns
+`sticky top-0 z-50 border-b border-white/10 bg-black/90 backdrop-blur-xl`.
+Logo + red wordmark left; text links `text-zinc-300 hover:text-white`; one red
+primary CTA right. Mobile collapses into a simple stacked menu.
 
-### Header
+### Hero
 
-- Short, specific title.
-- One-line description only when it clarifies purpose.
-- One primary action.
-- Secondary actions in a menu or alongside primary if frequent.
+Full-bleed black section, red radial glows, oversized black-weight headline with
+one red accent phrase, supporting paragraph in `text-zinc-400`, and a maximum of
+two CTAs (primary red + ghost outline).
 
-### Forms
+### Content cards & rails
 
-- Group fields by intent, not by control type.
-- Place visible labels.
-- Show errors next to the field.
-- Disable submission during processing.
-- Preserve values when the server returns validation errors.
-- Destructive actions require confirmation.
+Event/product cards behave like Netflix tiles: image-forward, `aspect-[16/10]`,
+hover lifts (`hover:-translate-y-1`) with a red border reveal
+(`hover:border-brand/50`), title reacts with `group-hover:text-brand-light`.
+Images always get a bottom scrim (`bg-gradient-to-t from-zinc-950 …`) so overlaid
+text stays legible.
 
-### Tables
+### Showpiece card
 
-- Use tables to compare records with stable columns.
-- Right-align amounts and quantities.
-- Keep per-row actions in a final column.
-- Filters belong in the toolbar, not in each card header.
-- On mobile, allow horizontal scroll or a designed compact view; do not hide critical data.
-- Include a helpful empty state.
+A single rotated feature card (`rotate-2`, `rounded-[2rem]`) may carry the brand
+gradient `from-brand via-brand-dark to-black`. One per page, maximum.
 
-### Cards
+## App screens (admin / operations)
 
-- Use cards to group related information.
-- One card per distinct concept.
-- Avoid nesting cards inside cards without a clear purpose.
-- Card headers are concise; do not repeat the page title.
+- Dark or light theme via the semantic tokens; hierarchy and legibility identical.
+- shadcn/ui components first; brand red flows in automatically through `--primary`.
+- Controlled density: tables for comparison, right-aligned amounts, filters in a
+  toolbar, helpful empty states, skeletons while loading.
+- One primary action per view; destructive actions always require confirmation.
 
-### Dialogs
+## Accessibility
 
-- Use for confirmation, quick creation, or focused detail.
-- Do not put multi-step workflows in a dialog.
-- Trap focus and restore it on close.
-- Include a clear dismiss action.
+- Focus visible everywhere; ring color is brand red.
+- Contrast: `brand` on black only for large text/fills; small accent text uses
+  `brand-light`. White on `brand` passes for button labels.
+- Interactive elements keep accessible labels (nav toggle, icon-only buttons).
+- Spanish copy preserves its accents and punctuation; files stay UTF-8.
 
-### Status indicators
+## SEO baseline
 
-- Use badges with consistent color + text.
-- Never rely on color alone; always include text or an accessible label.
-- States must be predictable across modules.
+- `resources/views/app.blade.php` carries the global meta set: description,
+  keywords, robots, canonical, Open Graph, Twitter Card, `theme-color #000000`,
+  manifest, and the full favicon package.
+- Every Inertia page sets a specific `<Head title="…" />`; titles render as
+  `TiketMark` via `config('app.name')`.
+- Keep one `<h1>` per page and meaningful `alt` text on imagery.
 
-### Loading states
+## Do / Don't
 
-- Show skeleton or spinner proportional to the content area.
-- Do not flash empty states before data loads.
-- Disable controls that depend on in-flight data.
-
-### Empty states
-
-- Explain what would normally appear.
-- Offer a clear next action when applicable.
-- Never show a blank table without context.
-
-### Error states
-
-- Show what went wrong and what to do next.
-- Inline errors near the affected field.
-- Page-level errors at the top of the content area.
-- Do not show raw exception messages to users.
-
-### Success feedback
-
-- Brief confirmation after mutation.
-- Redirect to a stable, relevant view.
-- Toast or flash message when staying on the same page.
+- **Do** let event imagery dominate; UI chrome recedes.
+- **Do** use the brand tokens (`bg-brand`, `text-brand-light`) instead of raw hex.
+- **Do** keep one accent color per interaction.
+- **Don't** introduce new accent hues for decoration.
+- **Don't** put multi-step workflows in dialogs or nest cards without purpose.
+- **Don't** use red both as brand and as functional error in the same view without
+  an icon/label disambiguating.

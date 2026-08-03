@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['company_id', 'name', 'version', 'schema_version', 'source_media_id', 'source_json', 'checksum_sha256', 'status', 'validation_status', 'validation_errors', 'created_by_user_id'])]
+#[Fillable(['company_id', 'name', 'template_type', 'version', 'schema_version', 'source_media_id', 'source_json', 'checksum_sha256', 'status', 'validation_status', 'validation_errors', 'created_by_user_id'])]
 class LayoutTemplate extends Model
 {
     use HasUuidPrimary, SoftDeletes;

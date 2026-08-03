@@ -1,7 +1,7 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import { CalendarPlus, Search } from 'lucide-react';
+﻿import { Head, router, useForm } from '@inertiajs/react';
+import { CalendarPlus, Search, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
     FieldError,
     PageHeader,
@@ -13,20 +13,69 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { dateTime, money } from '@/lib/platform';
+import { dateTime } from '@/lib/platform';
 import type { Paginated } from '@/lib/platform';
 import eventsRoutes from '@/routes/admin/events';
 
+const toDateTimeLocalInput = (value: string | null): string => {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+
+    return local.toISOString().slice(0, 16);
+};
+
 type EventItem = {
     id: string;
+    event_category_id: string | null;
     name: string;
     public_code: string;
+    slug: string;
+    short_description: string | null;
+    description: string | null;
     status: string;
     venue_name: string;
+    venue_address: string | null;
     city: string | null;
+    cover_image_url: string | null;
     category: { name: string } | null;
-    occurrences: { starts_at: string; status: string }[];
+    occurrences: {
+        id: string;
+        starts_at: string;
+        ends_at: string | null;
+        sales_start_at: string | null;
+        sales_end_at: string | null;
+        status: string;
+        layout: { layout_template_id: string } | null;
+    }[];
 };
+
+type EventFormData = {
+    _method: 'POST' | 'PATCH';
+    name: string;
+    event_category_id: string;
+    layout_template_id: string;
+    short_description: string;
+    description: string;
+    cover_image: File | null;
+    venue_name: string;
+    venue_address: string;
+    city: string;
+    starts_at: string;
+    ends_at: string;
+    sales_start_at: string;
+    sales_end_at: string;
+    status: 'draft' | 'published' | 'finished' | 'cancelled';
+};
+
+const EVENT_STATUSES = ['draft', 'published', 'finished', 'cancelled'] as const;
+
+function isEventStatus(value: string): value is EventFormData['status'] {
+    return (EVENT_STATUSES as readonly string[]).includes(value);
+}
 
 export default function AdminEvents({
     events,
@@ -36,16 +85,21 @@ export default function AdminEvents({
 }: {
     events: Paginated<EventItem>;
     categories: { id: string; name: string }[];
-    layouts: { id: string; name: string; version: number }[];
+    layouts: { id: string; name: string; version: number; status: string }[];
     filters: { search: string };
 }) {
     const [search, setSearch] = useState(filters.search);
-    const form = useForm({
+    const [editingEventId, setEditingEventId] = useState<string | null>(null);
+    const [currentCoverUrl, setCurrentCoverUrl] = useState<string | null>(null);
+    const coverInputRef = useRef<HTMLInputElement | null>(null);
+    const form = useForm<EventFormData>({
+        _method: 'POST',
         name: '',
         event_category_id: '',
         layout_template_id: layouts[0]?.id ?? '',
         short_description: '',
         description: '',
+        cover_image: null as File | null,
         venue_name: '',
         venue_address: '',
         city: '',
@@ -54,14 +108,6 @@ export default function AdminEvents({
         sales_start_at: '',
         sales_end_at: '',
         status: 'published',
-        ticket_types: [
-            {
-                name: 'General',
-                code: 'GENERAL',
-                base_price: '100.00',
-                quota_total: 100,
-            },
-        ],
     });
     const promotionForm = useForm({
         event_id: events.data[0]?.id ?? '',
@@ -74,6 +120,53 @@ export default function AdminEvents({
         starts_at: '',
         ends_at: '',
     });
+    const resetEventForm = (): void => {
+        setEditingEventId(null);
+        setCurrentCoverUrl(null);
+        form.reset();
+    };
+    const openCoverPicker = (): void => {
+        coverInputRef.current?.click();
+    };
+    const editEvent = (event: EventItem): void => {
+        setEditingEventId(event.id);
+        setCurrentCoverUrl(event.cover_image_url);
+        form.setData('_method', 'PATCH');
+        form.setData('name', event.name);
+        form.setData('event_category_id', event.event_category_id ?? '');
+        form.setData(
+            'layout_template_id',
+            event.occurrences[0]?.layout?.layout_template_id ??
+                layouts[0]?.id ??
+                '',
+        );
+        form.setData('short_description', event.short_description ?? '');
+        form.setData('description', event.description ?? '');
+        form.setData('cover_image', null);
+        form.setData('venue_name', event.venue_name);
+        form.setData('venue_address', event.venue_address ?? '');
+        form.setData('city', event.city ?? '');
+        form.setData(
+            'starts_at',
+            toDateTimeLocalInput(event.occurrences[0]?.starts_at ?? null),
+        );
+        form.setData(
+            'ends_at',
+            toDateTimeLocalInput(event.occurrences[0]?.ends_at ?? null),
+        );
+        form.setData(
+            'sales_start_at',
+            toDateTimeLocalInput(event.occurrences[0]?.sales_start_at ?? null),
+        );
+        form.setData(
+            'sales_end_at',
+            toDateTimeLocalInput(event.occurrences[0]?.sales_end_at ?? null),
+        );
+        form.setData(
+            'status',
+            (event.occurrences[0]?.status ?? event.status) as EventFormData['status'],
+        );
+    };
     const filter = (event: FormEvent) => {
         event.preventDefault();
         router.get(
@@ -84,7 +177,14 @@ export default function AdminEvents({
     };
     const submit = (event: FormEvent) => {
         event.preventDefault();
-        form.post(eventsRoutes.store().url, { onSuccess: () => form.reset() });
+        const destination = editingEventId
+            ? eventsRoutes.update(editingEventId).url
+            : eventsRoutes.store().url;
+
+        form.post(destination, {
+            forceFormData: true,
+            onSuccess: () => resetEventForm(),
+        });
     };
     const submitPromotion = (event: FormEvent) => {
         event.preventDefault();
@@ -102,7 +202,7 @@ export default function AdminEvents({
                     eyebrow={'Boletería'}
                     title={'Eventos'}
                     description={
-                        'Crea funciones, instancia planos y define el cupo comercial inicial.'
+                        'Crea funciones y selecciona el plano que define ubicaciones y precios.'
                     }
                 />
                 <div className={'grid gap-6 xl:grid-cols-[1fr_420px]'}>
@@ -135,18 +235,67 @@ export default function AdminEvents({
                                     {events.data.map((item) => (
                                         <tr
                                             key={item.id}
-                                            className={'border-b last:border-0'}
+                                            role={'button'}
+                                            tabIndex={0}
+                                            onClick={() => editEvent(item)}
+                                            onKeyDown={(event) => {
+                                                if (
+                                                    event.key === 'Enter' ||
+                                                    event.key === ' '
+                                                ) {
+                                                    event.preventDefault();
+                                                    editEvent(item);
+                                                }
+                                            }}
+                                            className={
+                                                'cursor-pointer border-b last:border-0 hover:bg-slate-100 focus:bg-slate-200 focus:outline-none dark:hover:bg-slate-800/60 dark:focus:bg-slate-800'
+                                            }
                                         >
                                             <td className={'py-4'}>
-                                                <strong>{item.name}</strong>
-                                                <small
+                                                <div
                                                     className={
-                                                        'block text-muted-foreground'
+                                                        'flex items-start gap-3'
                                                     }
                                                 >
-                                                    {item.public_code} ·{' '}
-                                                    {item.category?.name}
-                                                </small>
+                                                    <div
+                                                        className={
+                                                            'flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted'
+                                                        }
+                                                    >
+                                                        {item.cover_image_url ? (
+                                                            <img
+                                                                src={
+                                                                    item.cover_image_url
+                                                                }
+                                                                alt={item.name}
+                                                                className={
+                                                                    'size-full object-cover'
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <span
+                                                                className={
+                                                                    'text-xs text-muted-foreground'
+                                                                }
+                                                            >
+                                                                Sin foto
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className={'min-w-0 flex-1'}>
+                                                        <strong>
+                                                            {item.name}
+                                                        </strong>
+                                                        <small
+                                                            className={
+                                                                'block text-muted-foreground'
+                                                            }
+                                                        >
+                                                            {item.public_code}{' '}
+                                                            · {item.category?.name}
+                                                        </small>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td>
                                                 {item.occurrences[0]
@@ -163,6 +312,12 @@ export default function AdminEvents({
                                                     />
                                                     <select
                                                         value={item.status}
+                                                        onClick={(event) =>
+                                                            event.stopPropagation()
+                                                        }
+                                                        onKeyDown={(event) =>
+                                                            event.stopPropagation()
+                                                        }
                                                         onChange={(event) =>
                                                             router.patch(
                                                                 eventsRoutes.status(
@@ -218,9 +373,11 @@ export default function AdminEvents({
                         <Pagination page={events} />
                     </Panel>
                     <Panel
-                        title={'Nuevo evento'}
+                        title={editingEventId ? 'Editar evento' : 'Nuevo evento'}
                         description={
-                            'Se creará una función con plano e inventario.'
+                            editingEventId
+                                ? 'Ajusta los datos del evento seleccionado y su portada.'
+                                : 'Se creará una función con plano e inventario.'
                         }
                     >
                         <form onSubmit={submit} className={'space-y-4'}>
@@ -234,6 +391,80 @@ export default function AdminEvents({
                                 />
                                 <FieldError message={form.errors.name} />
                             </div>
+                            {editingEventId && currentCoverUrl ? (
+                                <button
+                                    type={'button'}
+                                    onClick={openCoverPicker}
+                                    className={
+                                        'group relative block w-full overflow-hidden rounded-xl border border-dashed border-border'
+                                    }
+                                >
+                                    <img
+                                        src={currentCoverUrl}
+                                        alt={'Portada actual'}
+                                        className={
+                                            'h-44 w-full object-cover transition duration-300 group-hover:scale-[1.02]'
+                                        }
+                                    />
+                                    <div
+                                        className={
+                                            'absolute inset-0 bg-zinc-950/20 transition group-hover:bg-zinc-950/35'
+                                        }
+                                    />
+                                    <div
+                                        className={
+                                            'absolute inset-0 flex items-center justify-center'
+                                        }
+                                    >
+                                        <span
+                                            className={
+                                                'rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-zinc-950 shadow-lg'
+                                            }
+                                        >
+                                            Haz clic para cambiar la portada
+                                        </span>
+                                    </div>
+                                </button>
+                            ) : (
+                                <label
+                                    className={
+                                        'grid min-h-32 cursor-pointer place-items-center rounded-xl border border-dashed p-4 text-center'
+                                    }
+                                >
+                                    <span>
+                                        <Upload
+                                            className={
+                                                'mx-auto mb-3 text-muted-foreground'
+                                            }
+                                        />
+                                        <strong>
+                                            {form.data.cover_image?.name ??
+                                                'Subir portada del evento'}
+                                        </strong>
+                                        <small
+                                            className={
+                                                'mt-1 block text-muted-foreground'
+                                            }
+                                        >
+                                            Se mostrará como mosaico en el
+                                            catálogo público.
+                                        </small>
+                                    </span>
+                                </label>
+                            )}
+                            <input
+                                ref={coverInputRef}
+                                type={'file'}
+                                accept={'image/*'}
+                                className={'hidden'}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'cover_image',
+                                        e.target.files?.[0] ?? null,
+                                    )
+                                }
+                            />
+                            <FieldError message={form.errors.cover_image} />
                             <div className={'grid grid-cols-2 gap-3'}>
                                 <div>
                                     <Label>Categoría</Label>
@@ -282,6 +513,9 @@ export default function AdminEvents({
                                                 value={item.id}
                                             >
                                                 {item.name} v{item.version}
+                                                {item.status === 'active'
+                                                    ? ''
+                                                    : ' (inactivo)'}
                                             </option>
                                         ))}
                                     </select>
@@ -362,101 +596,73 @@ export default function AdminEvents({
                                     />
                                 </div>
                             </div>
-                            <div className={'rounded-lg border p-4'}>
-                                <p className={'mb-3 text-sm font-bold'}>
-                                    Entrada inicial
-                                </p>
-                                <div className={'grid grid-cols-2 gap-3'}>
+                            <div className={'grid grid-cols-2 gap-3'}>
+                                <div>
+                                    <Label>Inicio de ventas</Label>
                                     <Input
-                                        placeholder={'Nombre'}
-                                        value={form.data.ticket_types[0].name}
+                                        type={'datetime-local'}
+                                        value={form.data.sales_start_at}
                                         onChange={(e) =>
-                                            form.setData('ticket_types', [
-                                                {
-                                                    ...form.data
-                                                        .ticket_types[0],
-                                                    name: e.target.value,
-                                                },
-                                            ])
-                                        }
-                                    />
-                                    <Input
-                                        placeholder={'Código'}
-                                        value={form.data.ticket_types[0].code}
-                                        onChange={(e) =>
-                                            form.setData('ticket_types', [
-                                                {
-                                                    ...form.data
-                                                        .ticket_types[0],
-                                                    code: e.target.value,
-                                                },
-                                            ])
-                                        }
-                                    />
-                                    <Input
-                                        type={'number'}
-                                        step={'0.01'}
-                                        placeholder={'Precio'}
-                                        value={
-                                            form.data.ticket_types[0].base_price
-                                        }
-                                        onChange={(e) =>
-                                            form.setData('ticket_types', [
-                                                {
-                                                    ...form.data
-                                                        .ticket_types[0],
-                                                    base_price: e.target.value,
-                                                },
-                                            ])
-                                        }
-                                    />
-                                    <Input
-                                        type={'number'}
-                                        placeholder={'Cupo'}
-                                        value={
-                                            form.data.ticket_types[0]
-                                                .quota_total
-                                        }
-                                        onChange={(e) =>
-                                            form.setData('ticket_types', [
-                                                {
-                                                    ...form.data
-                                                        .ticket_types[0],
-                                                    quota_total: Number(
-                                                        e.target.value,
-                                                    ),
-                                                },
-                                            ])
+                                            form.setData(
+                                                'sales_start_at',
+                                                e.target.value,
+                                            )
                                         }
                                     />
                                 </div>
-                                <p
-                                    className={
-                                        'mt-2 text-xs text-muted-foreground'
-                                    }
-                                >
-                                    {money(
-                                        form.data.ticket_types[0].base_price,
-                                    )}{' '}
-                                    · {form.data.ticket_types[0].quota_total}{' '}
-                                    unidades
-                                </p>
+                                <div>
+                                    <Label>Fin de ventas</Label>
+                                    <Input
+                                        type={'datetime-local'}
+                                        value={form.data.sales_end_at}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'sales_end_at',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                </div>
                             </div>
+                            <p className={'text-xs text-muted-foreground'}>
+                                Estas fechas controlan si el evento aparece en venta de entradas.
+                            </p>
                             <div>
                                 <Label>Estado</Label>
                                 <select
-                                    className={
-                                        'h-9 w-full rounded-md border bg-background px-3 text-sm'
-                                    }
+                                    className={'h-9 w-full rounded-md border bg-background px-3 text-sm'}
                                     value={form.data.status}
-                                    onChange={(e) =>
-                                        form.setData('status', e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                        if (isEventStatus(e.target.value)) {
+                                            form.setData('status', e.target.value);
+                                        }
+                                    }}
                                 >
-                                    <option value={'published'}>
-                                        Publicado
-                                    </option>
-                                    <option value={'draft'}>Borrador</option>
+                                    {editingEventId ? (
+                                        <>
+                                            <option value={'draft'}>
+                                                Borrador
+                                            </option>
+                                            <option value={'published'}>
+                                                Publicado
+                                            </option>
+                                            <option value={'finished'}>
+                                                Finalizado
+                                            </option>
+                                            <option value={'cancelled'}>
+                                                Cancelado
+                                            </option>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <option value={'draft'}>
+                                                Borrador
+                                            </option>
+                                            <option value={'published'}>
+                                                Publicado
+                                            </option>
+                                        </>
+                                    )}
                                 </select>
                             </div>
                             {Object.values(form.errors).map((error) => (
@@ -465,13 +671,28 @@ export default function AdminEvents({
                                     message={error as string}
                                 />
                             ))}
-                            <Button
-                                className={'w-full'}
-                                disabled={form.processing}
-                            >
-                                <CalendarPlus />
-                                Crear evento
-                            </Button>
+                            <div className={'flex gap-3'}>
+                                {editingEventId && (
+                                    <Button
+                                        type={'button'}
+                                        variant={'outline'}
+                                        className={'w-full'}
+                                        onClick={resetEventForm}
+                                        disabled={form.processing}
+                                    >
+                                        Cancelar edición
+                                    </Button>
+                                )}
+                                <Button
+                                    className={'w-full'}
+                                    disabled={form.processing}
+                                >
+                                    <CalendarPlus />
+                                    {editingEventId
+                                        ? 'Actualizar evento'
+                                        : 'Crear evento'}
+                                </Button>
+                            </div>
                         </form>
                     </Panel>
                 </div>
@@ -617,3 +838,10 @@ export default function AdminEvents({
 AdminEvents.layout = {
     breadcrumbs: [{ title: 'Eventos', href: eventsRoutes.index() }],
 };
+
+
+
+
+
+
+
