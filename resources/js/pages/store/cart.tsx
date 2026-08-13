@@ -2,6 +2,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { Minus, Plus, ShieldCheck, ShoppingCart, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
+import AuthRequiredDialog from '@/components/store/auth-required-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,7 @@ import type { Auth } from '@/types';
 export default function StoreCart() {
     const { auth } = usePage<{ auth: Auth }>().props;
     const [items, setItems] = useState<CartItem[]>(readCart);
+    const [authDialogOpen, setAuthDialogOpen] = useState(false);
     const form = useForm({
         buyer_name: auth.user?.name ?? '',
         buyer_email: auth.user?.email ?? '',
@@ -58,6 +60,12 @@ export default function StoreCart() {
         );
     const submit = (event: FormEvent) => {
         event.preventDefault();
+
+        if (!auth.user) {
+            setAuthDialogOpen(true);
+            return;
+        }
+
         form.transform((data) => ({
             ...data,
             items: items.map((item) => ({
@@ -290,6 +298,10 @@ export default function StoreCart() {
                     </form>
                 )}
             </section>
+            <AuthRequiredDialog
+                open={authDialogOpen}
+                onOpenChange={setAuthDialogOpen}
+            />
         </>
     );
 }

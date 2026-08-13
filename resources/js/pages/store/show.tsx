@@ -1,5 +1,7 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Minus, Plus, ShieldCheck, ShoppingBag } from 'lucide-react';
+import { useState } from 'react';
+import AuthRequiredDialog from '@/components/store/auth-required-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +9,7 @@ import { addCartItem } from '@/lib/cart';
 import { money, sessionToken } from '@/lib/platform';
 import productOrders from '@/routes/product-orders';
 import store from '@/routes/store';
+import type { Auth } from '@/types';
 
 type Variant = {
     id: string;
@@ -25,6 +28,8 @@ type Product = {
 };
 
 export default function StoreShow({ product }: { product: Product }) {
+    const { auth } = usePage<{ auth: Auth }>().props;
+    const [authDialogOpen, setAuthDialogOpen] = useState(false);
     const form = useForm({
         buyer_name: '',
         buyer_email: '',
@@ -214,7 +219,14 @@ export default function StoreShow({ product }: { product: Product }) {
                             'mt-5 w-full bg-cyan-400 text-zinc-950 hover:bg-cyan-300'
                         }
                         disabled={!selected || form.processing}
-                        onClick={() => form.post(productOrders.store().url)}
+                        onClick={() => {
+                            if (!auth.user) {
+                                setAuthDialogOpen(true);
+                                return;
+                            }
+
+                            form.post(productOrders.store().url);
+                        }}
                     >
                         Comprar con QR
                     </Button>
@@ -248,6 +260,10 @@ export default function StoreShow({ product }: { product: Product }) {
                     </p>
                 </div>
             </section>
+            <AuthRequiredDialog
+                open={authDialogOpen}
+                onOpenChange={setAuthDialogOpen}
+            />
         </>
     );
 }
