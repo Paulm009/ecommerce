@@ -1,7 +1,8 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     CalendarDays,
     LayoutDashboard,
+    LogOut,
     Menu,
     ShoppingBag,
     ShoppingCart,
@@ -9,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { account, dashboard, home, login } from '@/routes';
+import { account, dashboard, home, login, logout } from '@/routes';
 import events from '@/routes/events';
 import store from '@/routes/store';
 import type { Auth } from '@/types';
@@ -86,18 +87,34 @@ export default function PublicLayout({
                     </nav>
                     <div className={'hidden items-center gap-3 md:flex'}>
                         {auth.user ? (
-                            <Button
-                                asChild
-                                variant={'outline'}
-                                className={'border-white/15 bg-transparent'}
-                            >
-                                <Link href={authenticatedDestination}>
-                                    <LayoutDashboard
-                                        className={'mr-2 size-4'}
-                                    />
-                                    Panel
-                                </Link>
-                            </Button>
+                            <>
+                                <Button
+                                    asChild
+                                    variant={'outline'}
+                                    className={'border-white/15 bg-transparent'}
+                                >
+                                    <Link href={authenticatedDestination}>
+                                        <LayoutDashboard
+                                            className={'mr-2 size-4'}
+                                        />
+                                        Panel
+                                    </Link>
+                                </Button>
+                                <Button
+                                    asChild
+                                    variant={'ghost'}
+                                    className={'text-zinc-300 hover:text-white'}
+                                >
+                                    <Link
+                                        href={logout()}
+                                        as={'button'}
+                                        onClick={() => router.flushAll()}
+                                    >
+                                        <LogOut className={'mr-2 size-4'} />
+                                        Cerrar sesión
+                                    </Link>
+                                </Button>
+                            </>
                         ) : (
                             <Button
                                 asChild
@@ -162,6 +179,19 @@ export default function PublicLayout({
                             <LayoutDashboard className={'size-4'} />
                             {auth.user ? 'Panel' : 'Ingresar'}
                         </Link>
+                        {auth.user && (
+                            <Link
+                                href={logout()}
+                                as={'button'}
+                                onClick={() => router.flushAll()}
+                                className={
+                                    'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-white/5'
+                                }
+                            >
+                                <LogOut className={'size-4'} />
+                                Cerrar sesión
+                            </Link>
+                        )}
                     </nav>
                 )}
             </header>

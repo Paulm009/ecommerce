@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Company;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
@@ -29,7 +32,35 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
+        // Customers land on their account page; only staff with dashboard.view go to /dashboard.
+        $response->assertRedirect(route('account', absolute: false));
+    }
+
+    public function test_staff_users_with_dashboard_permission_are_redirected_to_the_dashboard()
+    {
+        $company = Company::factory()->create();
+        $role = Role::query()->create(['company_id' => $company->id, 'name' => 'Dashboard viewer', 'code' => 'dashboard_viewer', 'module' => 'global', 'is_system' => true]);
+        $permission = Permission::query()->firstOrCreate(['code' => 'dashboard.view'], ['module' => 'global', 'description' => 'Consultar indicadores']);
+        $role->permissions()->sync([$permission->id]);
+        $user = User::factory()->staff()->create(['company_id' => $company->id]);
+        $user->roles()->attach($role->id, ['assigned_at' => now()]);
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_an_already_authenticated_customer_visiting_login_is_sent_to_their_account_not_the_dashboard()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('login'));
+
+        $response->assertRedirect(route('account', absolute: false));
     }
 
     public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()
