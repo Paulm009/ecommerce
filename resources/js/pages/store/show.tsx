@@ -1,7 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Minus, Plus, ShieldCheck, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
-import AuthRequiredDialog from '@/components/store/auth-required-dialog';
+import CheckoutRegisterDialog from '@/components/store/checkout-register-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,12 +29,14 @@ type Product = {
 
 export default function StoreShow({ product }: { product: Product }) {
     const { auth } = usePage<{ auth: Auth }>().props;
-    const [authDialogOpen, setAuthDialogOpen] = useState(false);
+    const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
     const form = useForm({
-        buyer_name: '',
-        buyer_email: '',
-        buyer_phone: '',
+        buyer_name: auth.user?.name ?? '',
+        buyer_email: auth.user?.email ?? '',
+        buyer_phone: String(auth.user?.phone ?? ''),
         buyer_identity_document: '',
+        password: '',
+        password_confirmation: '',
         session_token: sessionToken(),
         items: [
             { product_variant_id: product.variants[0]?.id ?? '', quantity: 1 },
@@ -221,7 +223,8 @@ export default function StoreShow({ product }: { product: Product }) {
                         disabled={!selected || form.processing}
                         onClick={() => {
                             if (!auth.user) {
-                                setAuthDialogOpen(true);
+                                setRegisterDialogOpen(true);
+
                                 return;
                             }
 
@@ -260,9 +263,22 @@ export default function StoreShow({ product }: { product: Product }) {
                     </p>
                 </div>
             </section>
-            <AuthRequiredDialog
-                open={authDialogOpen}
-                onOpenChange={setAuthDialogOpen}
+            <CheckoutRegisterDialog
+                open={registerDialogOpen}
+                onOpenChange={setRegisterDialogOpen}
+                processing={form.processing}
+                password={form.data.password}
+                passwordConfirmation={form.data.password_confirmation}
+                errors={{
+                    buyer_email: form.errors.buyer_email,
+                    password: form.errors.password,
+                    password_confirmation: form.errors.password_confirmation,
+                }}
+                onPasswordChange={(value) => form.setData('password', value)}
+                onPasswordConfirmationChange={(value) =>
+                    form.setData('password_confirmation', value)
+                }
+                onSubmit={() => form.post(productOrders.store().url)}
             />
         </>
     );
