@@ -1,5 +1,7 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Minus, Plus, ShieldCheck, ShoppingBag } from 'lucide-react';
+import { useState } from 'react';
+import CheckoutRegisterDialog from '@/components/store/checkout-register-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +9,7 @@ import { addCartItem } from '@/lib/cart';
 import { money, sessionToken } from '@/lib/platform';
 import productOrders from '@/routes/product-orders';
 import store from '@/routes/store';
+import type { Auth } from '@/types';
 
 type Variant = {
     id: string;
@@ -25,11 +28,15 @@ type Product = {
 };
 
 export default function StoreShow({ product }: { product: Product }) {
+    const { auth } = usePage<{ auth: Auth }>().props;
+    const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
     const form = useForm({
-        buyer_name: '',
-        buyer_email: '',
-        buyer_phone: '',
+        buyer_name: auth.user?.name ?? '',
+        buyer_email: auth.user?.email ?? '',
+        buyer_phone: String(auth.user?.phone ?? ''),
         buyer_identity_document: '',
+        password: '',
+        password_confirmation: '',
         session_token: sessionToken(),
         items: [
             { product_variant_id: product.variants[0]?.id ?? '', quantity: 1 },
@@ -214,7 +221,15 @@ export default function StoreShow({ product }: { product: Product }) {
                             'mt-5 w-full bg-cyan-400 text-zinc-950 hover:bg-cyan-300'
                         }
                         disabled={!selected || form.processing}
-                        onClick={() => form.post(productOrders.store().url)}
+                        onClick={() => {
+                            if (!auth.user) {
+                                setRegisterDialogOpen(true);
+
+                                return;
+                            }
+
+                            form.post(productOrders.store().url);
+                        }}
                     >
                         Comprar con QR
                     </Button>
@@ -248,6 +263,23 @@ export default function StoreShow({ product }: { product: Product }) {
                     </p>
                 </div>
             </section>
+            <CheckoutRegisterDialog
+                open={registerDialogOpen}
+                onOpenChange={setRegisterDialogOpen}
+                processing={form.processing}
+                password={form.data.password}
+                passwordConfirmation={form.data.password_confirmation}
+                errors={{
+                    buyer_email: form.errors.buyer_email,
+                    password: form.errors.password,
+                    password_confirmation: form.errors.password_confirmation,
+                }}
+                onPasswordChange={(value) => form.setData('password', value)}
+                onPasswordConfirmationChange={(value) =>
+                    form.setData('password_confirmation', value)
+                }
+                onSubmit={() => form.post(productOrders.store().url)}
+            />
         </>
     );
 }
