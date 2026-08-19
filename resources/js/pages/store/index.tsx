@@ -1,52 +1,29 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowDown,
+    ChevronLeft,
+    ChevronRight,
     Image as ImageIcon,
     PackageSearch,
     Search,
 } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { ProductDetailModal } from '@/components/store/product-detail-modal';
+import type { ProductDetail } from '@/components/store/product-detail-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { addCartItem } from '@/lib/cart';
 import { money } from '@/lib/platform';
 import type { Paginated } from '@/lib/platform';
 import store from '@/routes/store';
 
-type Product = {
+type Product = ProductDetail & {
     id: string;
-    name: string;
     slug: string;
-    description: string | null;
     is_featured: boolean;
-    categories: { name: string }[];
-    variants: {
-        sale_price: string;
-        inventory: { available_quantity: number } | null;
-    }[];
 };
-
-// TODO: reemplazar por datos reales cuando exista un modelo de menú en el backend.
-const MENU = [
-    {
-        title: 'Bebidas',
-        items: [
-            { name: 'Café americano', price: 12 },
-            { name: 'Café con leche', price: 14 },
-            { name: 'Té e infusiones', price: 10 },
-            { name: 'Jugo natural', price: 15 },
-        ],
-    },
-    {
-        title: 'Snacks',
-        items: [
-            { name: 'Croissant', price: 18 },
-            { name: 'Sándwich del día', price: 25 },
-            { name: 'Mix de frutos secos', price: 16 },
-            { name: 'Galletas artesanales', price: 12 },
-        ],
-    },
-];
 
 export default function StoreIndex({
     products,
@@ -54,7 +31,12 @@ export default function StoreIndex({
     filters,
 }: {
     products: Paginated<Product>;
-    categories: { id: string; name: string; slug: string }[];
+    categories: {
+        id: string;
+        name: string;
+        slug: string;
+        image_url?: string | null;
+    }[];
     filters: {
         search: string;
         category: string;
@@ -64,12 +46,33 @@ export default function StoreIndex({
 }) {
     const [search, setSearch] = useState(filters.search);
     const [category, setCategory] = useState(filters.category);
-    const [menuFilter, setMenuFilter] = useState<string | null>(null);
+    const [activeProduct, setActiveProduct] = useState<Product | null>(null);
+    const categoryScrollRef = useRef<HTMLDivElement>(null);
+    const scrollCategories = (direction: 1 | -1) => {
+        categoryScrollRef.current?.scrollBy({
+            left: direction * 320,
+            behavior: 'smooth',
+        });
+    };
     const submit = (event: FormEvent) => {
         event.preventDefault();
         router.get(
             store.index().url,
             { search, category },
+            {
+                preserveState: true,
+                preserveUrl: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+    const clearFilters = () => {
+        setSearch('');
+        setCategory('');
+        router.get(
+            store.index().url,
+            {},
             {
                 preserveState: true,
                 preserveUrl: true,
@@ -95,9 +98,29 @@ export default function StoreIndex({
             .getElementById('catalogo')
             ?.scrollIntoView({ behavior: 'smooth' });
     };
-    const goToMenuGroup = (title: string) => {
-        setMenuFilter((current) => (current === title ? null : title));
-        document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
+    const handleAddToCart = (product: Product) => {
+        const variant =
+            product.variants.find(
+                (item) => (item.inventory?.available_quantity ?? 0) > 0,
+            ) ?? product.variants[0];
+        const available = variant?.inventory?.available_quantity ?? 0;
+
+        if (!variant || available < 1) {
+            return;
+        }
+
+        addCartItem({
+            product_variant_id: variant.id,
+            product_name: product.name,
+            variant_name: variant.name,
+            sku: variant.sku,
+            quantity: 1,
+            unit_price: variant.sale_price,
+            available_quantity: available,
+        });
+        toast.success(`${product.name} se agregó al carrito.`, {
+            position: 'top-right',
+        });
     };
 
     return (
@@ -107,120 +130,58 @@ export default function StoreIndex({
             {/* Hero: merch destacado del evento */}
             <section
                 className={
-                    'border-b border-white/10 bg-black bg-[radial-gradient(circle_at_top_right,rgba(209,31,22,.28),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(124,25,22,.22),transparent_40%)] lg:min-h-[calc(100vh-4rem)]'
+                    'overflow-hidden border-b border-white/10 bg-black bg-[radial-gradient(circle_at_top_right,rgba(209,31,22,.28),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(124,25,22,.22),transparent_40%)]'
                 }
             >
                 <div
                     className={
-                        'px-4 pt-4 pb-10 sm:px-6 lg:flex lg:items-stretch lg:gap-4 lg:pt-2 lg:pr-0 lg:pl-16'
+                        'mx-auto flex max-w-7xl flex-col-reverse items-center gap-8 px-4 py-10 sm:px-6 lg:min-h-[50vh] lg:flex-row lg:justify-between lg:gap-12 lg:py-0'
                     }
                 >
-                    <div
-                        className={
-                            'lg:flex lg:w-fit lg:shrink-0 lg:flex-col lg:items-start'
-                        }
-                    >
+                    <div className={'text-center lg:max-w-md lg:text-left'}>
                         <p
                             className={
-                                'text-xs font-bold tracking-[.3em] whitespace-nowrap text-brand-light uppercase'
+                                'text-xs font-bold tracking-[.3em] text-brand-light uppercase'
                             }
                         >
                             Tienda oficial
                         </p>
                         <h1
                             className={
-                                'mt-2 font-display text-4xl leading-[0.95] sm:text-7xl lg:mt-auto lg:rotate-180 lg:text-[10rem] lg:whitespace-nowrap lg:[writing-mode:vertical-rl]'
+                                'mt-3 font-display text-4xl leading-[0.95] sm:text-6xl'
                             }
                         >
-                            Llévate un <br className={'hidden lg:block'} />
+                            Llévate un <br />
                             recuerdo.
                         </h1>
-                    </div>
-
-                    <div className={'relative mt-8 flex-1 lg:mt-0'}>
-                        <img
-                            src={'/images/store/hero-merch.png'}
-                            alt={'Merch oficial del evento'}
+                        <p
                             className={
-                                'aspect-16/10 w-full object-cover lg:aspect-auto lg:h-[780px]'
-                            }
-                        />
-
-                        <div
-                            className={
-                                'relative -mt-14 ml-auto max-w-md bg-brand-dark px-8 py-12 shadow-xl shadow-black/30 sm:absolute sm:right-48 sm:bottom-0 sm:mt-0 sm:translate-y-1/2'
+                                'mx-auto mt-4 max-w-sm text-white/70 lg:mx-0'
                             }
                         >
-                            <p className={'leading-6 text-white/90'}>
-                                Merch exclusivo del evento para llevarte un
-                                pedacito de la experiencia.
-                            </p>
-                            <Button
-                                asChild
-                                variant={'outline'}
-                                className={
-                                    'mt-5 rounded-none border-white/40 bg-transparent text-white hover:bg-white/10'
-                                }
-                            >
-                                <a href={'#catalogo'}>
-                                    Ver catálogo
-                                    <ArrowDown className={'size-4'} />
-                                </a>
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Banner: pedidos de comida/bebida para retirar en el recinto */}
-            <section
-                className={
-                    'relative overflow-hidden border-b border-white/10 bg-black lg:min-h-[calc(100vh-4rem)]'
-                }
-            >
-                <img
-                    src={'/images/store/cafe5.avif'}
-                    alt={'Pide tu café o snack antes de llegar'}
-                    className={
-                        'absolute inset-x-0 top-0 h-[80vh] w-full object-cover'
-                    }
-                />
-                <div
-                    className={
-                        'relative flex min-h-[420px] flex-col justify-end px-4 py-10 sm:px-6 lg:min-h-[calc(100vh-4rem)] lg:pr-6 lg:pl-16'
-                    }
-                >
-                    <h2
-                        className={
-                            'ml-auto max-w-3xl text-right font-display text-5xl leading-[0.9] sm:text-7xl lg:text-9xl'
-                        }
-                    >
-                        Pide antes
-                        <br />
-                        de llegar
-                    </h2>
-                    <div
-                        className={
-                            'mt-8 max-w-md bg-brand-dark px-8 py-12 shadow-xl shadow-black/30 lg:ml-24'
-                        }
-                    >
-                        <p className={'leading-6 text-white/90'}>
-                            Encuentra tu café, bebida o snack listo en el punto
-                            de retiro del recinto.
+                            Merch exclusivo del evento para llevarte un
+                            pedacito de la experiencia.
                         </p>
                         <Button
                             asChild
-                            variant={'outline'}
                             className={
-                                'mt-5 rounded-none border-white/40 bg-transparent text-white hover:bg-white/10'
+                                'mt-6 rounded-full bg-brand px-8 text-white hover:bg-brand-hover'
                             }
                         >
-                            <a href={'#menu'}>
-                                Ver menú
+                            <a href={'#catalogo'}>
+                                Ver catálogo
                                 <ArrowDown className={'size-4'} />
                             </a>
                         </Button>
                     </div>
+
+                    <img
+                        src={'/images/store/hero-merch.png'}
+                        alt={'Merch oficial del evento'}
+                        className={
+                            'max-h-[32vh] w-auto object-contain sm:max-h-[38vh] lg:max-h-[42vh]'
+                        }
+                    />
                 </div>
             </section>
 
@@ -231,55 +192,101 @@ export default function StoreIndex({
             >
                 <h2 className={'text-2xl font-black sm:text-3xl'}>Catálogo</h2>
 
-                <h3
-                    className={
-                        'mt-6 text-xs font-bold tracking-[.25em] text-brand-light uppercase'
-                    }
-                >
-                    Categorías
-                </h3>
-                <div
-                    className={
-                        'mt-4 flex snap-x [scrollbar-width:none] gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden'
-                    }
-                >
-                    {categories.map((item) => (
+                <div className={'mt-6 flex items-center justify-between gap-4'}>
+                    <h3
+                        className={
+                            'text-xs font-bold tracking-[.25em] text-brand-light uppercase'
+                        }
+                    >
+                        Categorías
+                    </h3>
+                    {category && (
                         <button
-                            key={`product-${item.id}`}
                             type={'button'}
-                            onClick={() => goToProductCategory(item.slug)}
+                            onClick={() => goToProductCategory(category)}
                             className={
-                                'group relative aspect-4/3 w-56 shrink-0 snap-start overflow-hidden border transition sm:w-72 ' +
-                                (category === item.slug
-                                    ? 'border-brand'
-                                    : 'border-white/10 hover:border-brand/50')
+                                'text-xs font-bold text-zinc-400 uppercase hover:text-white'
                             }
                         >
-                            {/*
-                                Foto representativa de la categoría.
-                                Reemplazar este bloque placeholder por:
-                                <img src={item.image_url} alt={item.name} className="absolute inset-0 h-full w-full object-cover" />
-                            */}
-                            <div
+                            Quitar filtro
+                        </button>
+                    )}
+                </div>
+                <div className={'relative mt-4'}>
+                    <button
+                        type={'button'}
+                        onClick={() => scrollCategories(-1)}
+                        aria-label={'Categoría anterior'}
+                        className={
+                            'absolute top-1/2 left-0 z-10 hidden size-10 -translate-x-4 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/80 text-white transition hover:border-brand/50 md:flex'
+                        }
+                    >
+                        <ChevronLeft className={'size-5'} />
+                    </button>
+
+                    <div
+                        ref={categoryScrollRef}
+                        className={
+                            'flex snap-x scroll-smooth [scrollbar-width:none] gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden'
+                        }
+                    >
+                        {categories.map((item) => (
+                            <button
+                                key={`product-${item.id}`}
+                                type={'button'}
+                                onClick={() => goToProductCategory(item.slug)}
                                 className={
-                                    'absolute inset-0 bg-gradient-to-br from-brand/25 to-brand-dark/40'
-                                }
-                            />
-                            <ImageIcon
-                                className={
-                                    'absolute inset-0 m-auto size-12 text-white/25 transition group-hover:scale-110'
-                                }
-                                aria-hidden={'true'}
-                            />
-                            <span
-                                className={
-                                    'absolute inset-x-0 bottom-0 bg-black/70 px-4 py-3 text-left text-base font-bold text-white'
+                                    'group relative aspect-4/3 w-56 shrink-0 snap-start overflow-hidden border transition sm:w-72 ' +
+                                    (category === item.slug
+                                        ? 'border-brand'
+                                        : 'border-white/10 hover:border-brand/50')
                                 }
                             >
-                                {item.name}
-                            </span>
-                        </button>
-                    ))}
+                                {item.image_url ? (
+                                    <img
+                                        src={item.image_url}
+                                        alt={item.name}
+                                        className={
+                                            'absolute inset-0 h-full w-full object-cover transition group-hover:scale-110'
+                                        }
+                                    />
+                                ) : (
+                                    <>
+                                        {/* Imagen por defecto: la categoría aún no tiene imagen cargada. */}
+                                        <div
+                                            className={
+                                                'absolute inset-0 bg-gradient-to-br from-brand/25 to-brand-dark/40'
+                                            }
+                                        />
+                                        <ImageIcon
+                                            className={
+                                                'absolute inset-0 m-auto size-12 text-white/25 transition group-hover:scale-110'
+                                            }
+                                            aria-hidden={'true'}
+                                        />
+                                    </>
+                                )}
+                                <span
+                                    className={
+                                        'absolute inset-x-0 bottom-0 bg-black/70 px-4 py-3 text-left text-base font-bold text-white'
+                                    }
+                                >
+                                    {item.name}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+
+                    <button
+                        type={'button'}
+                        onClick={() => scrollCategories(1)}
+                        aria-label={'Siguiente categoría'}
+                        className={
+                            'absolute top-1/2 right-0 z-10 hidden size-10 -translate-y-1/2 translate-x-4 items-center justify-center rounded-full border border-white/10 bg-black/80 text-white transition hover:border-brand/50 md:flex'
+                        }
+                    >
+                        <ChevronRight className={'size-5'} />
+                    </button>
                 </div>
 
                 <form
@@ -317,71 +324,104 @@ export default function StoreIndex({
                         'mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                     }
                 >
-                    {products.data.map((product) => (
-                        <Link
-                            key={product.id}
-                            href={store.show(product.slug)}
-                            className={
-                                'group overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] transition hover:-translate-y-1 hover:border-brand/50'
-                            }
-                        >
-                            {/*
-                                Foto del producto.
-                                Reemplazar este bloque placeholder por:
-                                <img src={product.image_url} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
-                                (requiere exponer image_url del producto desde el backend)
-                            */}
+                    {products.data.map((product) => {
+                        const available = product.variants.reduce(
+                            (sum, item) =>
+                                sum + (item.inventory?.available_quantity ?? 0),
+                            0,
+                        );
+                        const soldOut = available < 1;
+
+                        return (
                             <div
+                                key={product.id}
                                 className={
-                                    'relative grid aspect-square place-items-center border-b border-dashed border-white/10 bg-gradient-to-br from-brand/25 to-brand-dark/40'
+                                    'group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] transition hover:-translate-y-1 hover:border-brand/50'
                                 }
                             >
-                                <ImageIcon
-                                    className={
-                                        'size-12 text-white/25 transition group-hover:scale-110'
-                                    }
-                                    aria-hidden={'true'}
-                                />
-                            </div>
-                            <div className={'p-5'}>
-                                <p
-                                    className={
-                                        'text-xs tracking-wider text-zinc-500 uppercase'
-                                    }
+                                <button
+                                    type={'button'}
+                                    onClick={() => setActiveProduct(product)}
+                                    className={'block w-full text-left'}
                                 >
-                                    {product.categories
-                                        .map((item) => item.name)
-                                        .join(' · ')}
-                                </p>
-                                <h3 className={'mt-2 text-xl font-black'}>
-                                    {product.name}
-                                </h3>
-                                <div
-                                    className={
-                                        'mt-5 flex items-center justify-between'
-                                    }
-                                >
-                                    <strong className={'text-brand-light'}>
-                                        Desde{' '}
-                                        {money(
-                                            product.variants[0]?.sale_price ??
-                                                0,
-                                        )}
-                                    </strong>
-                                    <span className={'text-xs text-zinc-500'}>
-                                        {product.variants.reduce(
-                                            (sum, item) =>
-                                                sum +
-                                                (item.inventory
-                                                    ?.available_quantity ?? 0),
-                                            0,
-                                        )}{' '}
-                                        disp.
-                                    </span>
+                                    {/*
+                                        Foto del producto.
+                                        Reemplazar este bloque placeholder por:
+                                        <img src={product.image_url} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
+                                        (requiere exponer image_url del producto desde el backend)
+                                    */}
+                                    <div
+                                        className={
+                                            'relative grid aspect-square place-items-center border-b border-dashed border-white/10 bg-gradient-to-br from-brand/25 to-brand-dark/40'
+                                        }
+                                    >
+                                        <ImageIcon
+                                            className={
+                                                'size-12 text-white/25 transition group-hover:scale-110'
+                                            }
+                                            aria-hidden={'true'}
+                                        />
+                                    </div>
+                                    <div className={'p-5'}>
+                                        <p
+                                            className={
+                                                'text-xs tracking-wider text-zinc-500 uppercase'
+                                            }
+                                        >
+                                            {product.categories
+                                                .map((item) => item.name)
+                                                .join(' · ')}
+                                        </p>
+                                        <h3
+                                            className={
+                                                'mt-2 text-xl font-black'
+                                            }
+                                        >
+                                            {product.name}
+                                        </h3>
+                                        <div
+                                            className={
+                                                'mt-5 flex items-center justify-between'
+                                            }
+                                        >
+                                            <strong
+                                                className={'text-brand-light'}
+                                            >
+                                                Desde{' '}
+                                                {money(
+                                                    product.variants[0]
+                                                        ?.sale_price ?? 0,
+                                                )}
+                                            </strong>
+                                            <span
+                                                className={
+                                                    'text-xs text-zinc-500'
+                                                }
+                                            >
+                                                {available} disp.
+                                            </span>
+                                        </div>
+                                    </div>
+                                </button>
+                                <div className={'mt-auto px-5 pb-5'}>
+                                    <Button
+                                        type={'button'}
+                                        disabled={soldOut}
+                                        onClick={() =>
+                                            handleAddToCart(product)
+                                        }
+                                        className={
+                                            'w-full bg-brand text-white hover:bg-brand-hover disabled:opacity-40'
+                                        }
+                                    >
+                                        {soldOut
+                                            ? 'Agotado'
+                                            : 'Agregar al carrito'}
+                                    </Button>
                                 </div>
                             </div>
-                        </Link>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {products.data.length === 0 && (
@@ -392,6 +432,17 @@ export default function StoreIndex({
                     >
                         <PackageSearch className={'mx-auto mb-4'} />
                         No hay productos para estos filtros.
+                        {(search || category) && (
+                            <div className={'mt-4'}>
+                                <Button
+                                    type={'button'}
+                                    variant={'outline'}
+                                    onClick={clearFilters}
+                                >
+                                    Limpiar filtros
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -415,120 +466,10 @@ export default function StoreIndex({
                 )}
             </section>
 
-            {/* Menú: café y snacks para pedir antes de llegar */}
-            <section
-                id={'menu'}
-                className={'scroll-mt-20 border-t border-white/10 bg-black'}
-            >
-                <div className={'mx-auto max-w-7xl px-4 py-14 sm:px-6'}>
-                    <div className={'flex items-center justify-between gap-4'}>
-                        <h2 className={'text-2xl font-black sm:text-3xl'}>
-                            Menú
-                        </h2>
-                        {menuFilter && (
-                            <button
-                                type={'button'}
-                                onClick={() => setMenuFilter(null)}
-                                className={
-                                    'text-xs font-bold text-zinc-400 uppercase hover:text-white'
-                                }
-                            >
-                                Ver todo
-                            </button>
-                        )}
-                    </div>
-                    <p className={'mt-2 max-w-xl text-sm text-zinc-400'}>
-                        Pide tu café o snack antes de llegar y retíralo en el
-                        punto de retiro del recinto.
-                    </p>
-
-                    <h3
-                        className={
-                            'mt-6 text-xs font-bold tracking-[.25em] text-brand-light uppercase'
-                        }
-                    >
-                        Categorías
-                    </h3>
-                    <div
-                        className={
-                            'mt-4 flex snap-x [scrollbar-width:none] gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden'
-                        }
-                    >
-                        {MENU.map((group) => (
-                            <button
-                                key={`menu-${group.title}`}
-                                type={'button'}
-                                onClick={() => goToMenuGroup(group.title)}
-                                className={
-                                    'group relative aspect-4/3 w-56 shrink-0 snap-start overflow-hidden border transition sm:w-72 ' +
-                                    (menuFilter === group.title
-                                        ? 'border-brand'
-                                        : 'border-white/10 hover:border-brand/50')
-                                }
-                            >
-                                <div
-                                    className={
-                                        'absolute inset-0 bg-gradient-to-br from-brand-dark/40 to-zinc-900'
-                                    }
-                                />
-                                <ImageIcon
-                                    className={
-                                        'absolute inset-0 m-auto size-12 text-white/25 transition group-hover:scale-110'
-                                    }
-                                    aria-hidden={'true'}
-                                />
-                                <span
-                                    className={
-                                        'absolute inset-x-0 bottom-0 bg-black/70 px-4 py-3 text-left text-base font-bold text-white'
-                                    }
-                                >
-                                    {group.title}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-
-                    <div
-                        className={
-                            'mt-10 grid gap-x-12 gap-y-10 sm:grid-cols-2'
-                        }
-                    >
-                        {MENU.filter(
-                            (group) =>
-                                !menuFilter || group.title === menuFilter,
-                        ).map((group) => (
-                            <div key={group.title}>
-                                <h3
-                                    className={
-                                        'text-xs font-bold tracking-[.25em] text-brand-light uppercase'
-                                    }
-                                >
-                                    {group.title}
-                                </h3>
-                                <ul className={'mt-4 divide-y divide-white/10'}>
-                                    {group.items.map((item) => (
-                                        <li
-                                            key={item.name}
-                                            className={
-                                                'flex items-center justify-between gap-4 py-3'
-                                            }
-                                        >
-                                            <span>{item.name}</span>
-                                            <strong
-                                                className={
-                                                    'shrink-0 text-brand-light'
-                                                }
-                                            >
-                                                {money(item.price)}
-                                            </strong>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
+            <ProductDetailModal
+                product={activeProduct}
+                onOpenChange={(open) => !open && setActiveProduct(null)}
+            />
         </>
     );
 }

@@ -41,11 +41,13 @@ export const addCartItem = (item: CartItem) => {
             existing.quantity + item.quantity,
         );
         writeCart(items);
+        window.dispatchEvent(new Event('eventa-cart-item-added'));
 
         return;
     }
 
     writeCart([...items, item]);
+    window.dispatchEvent(new Event('eventa-cart-item-added'));
 };
 
 export const clearCart = () => writeCart([]);

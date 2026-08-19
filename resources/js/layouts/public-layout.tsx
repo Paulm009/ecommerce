@@ -1,13 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
-import {
-    CalendarDays,
-    LayoutDashboard,
-    Menu,
-    ShoppingBag,
-    ShoppingCart,
-    X,
-} from 'lucide-react';
+import { CalendarDays, LayoutDashboard, Menu, ShoppingBag, X } from 'lucide-react';
 import { useState } from 'react';
+import { CartFloatingBubble } from '@/components/store/cart-floating-bubble';
 import { Button } from '@/components/ui/button';
 import { account, dashboard, home, login } from '@/routes';
 import events from '@/routes/events';
@@ -20,9 +14,11 @@ export default function PublicLayout({
     children: React.ReactNode;
 }) {
     const [open, setOpen] = useState(false);
-    const { auth } = usePage<{ auth: Auth }>().props;
+    const page = usePage<{ auth: Auth }>();
+    const { auth } = page.props;
     const authenticatedDestination =
         auth.user?.user_type === 'customer' ? account() : dashboard();
+    const isStorePage = page.component.startsWith('store/');
 
     return (
         <div className={'min-h-screen bg-black text-white'}>
@@ -74,14 +70,6 @@ export default function PublicLayout({
                             }
                         >
                             Tienda
-                        </Link>
-                        <Link
-                            href={store.cart()}
-                            className={
-                                'text-zinc-300 transition hover:text-white'
-                            }
-                        >
-                            Carrito
                         </Link>
                     </nav>
                     <div className={'hidden items-center gap-3 md:flex'}>
@@ -143,15 +131,6 @@ export default function PublicLayout({
                             Tienda
                         </Link>
                         <Link
-                            href={store.cart()}
-                            className={
-                                'flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-white/5'
-                            }
-                        >
-                            <ShoppingCart className={'size-4'} />
-                            Carrito
-                        </Link>
-                        <Link
                             href={
                                 auth.user ? authenticatedDestination : login()
                             }
@@ -173,6 +152,7 @@ export default function PublicLayout({
             >
                 TiketMark · Eventos, entradas y productos en un solo lugar.
             </footer>
+            {isStorePage && <CartFloatingBubble />}
         </div>
     );
 }
