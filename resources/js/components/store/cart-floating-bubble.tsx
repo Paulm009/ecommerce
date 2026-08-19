@@ -62,7 +62,7 @@ export function CartFloatingBubble() {
                 )}
             >
                 <ShoppingCart className={'size-5 sm:size-6'} />
-                {count > 0 && (
+                {auth.user && count > 0 && (
                     <span
                         className={
                             'absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-bold text-brand'
