@@ -1,12 +1,17 @@
-import { router, useForm } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { Minus, Plus, ShieldCheck, ShoppingBag } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { addCartItem } from '@/lib/cart';
 import { money, sessionToken } from '@/lib/platform';
+import { login } from '@/routes';
 import productOrders from '@/routes/product-orders';
 import store from '@/routes/store';
+import type { Auth } from '@/types';
+import { RegisterModal } from './register-modal';
+import type { RegisteredData } from './register-modal';
 
 export type ProductDetailVariant = {
     id: string;
@@ -24,10 +29,11 @@ export type ProductDetail = {
 };
 
 export function ProductDetailView({ product }: { product: ProductDetail }) {
+    const { auth } = usePage<{ auth: Auth }>().props;
     const form = useForm({
-        buyer_name: '',
-        buyer_email: '',
-        buyer_phone: '',
+        buyer_name: auth.user?.name ?? '',
+        buyer_email: auth.user?.email ?? '',
+        buyer_phone: String(auth.user?.phone ?? ''),
         buyer_identity_document: '',
         session_token: sessionToken(),
         items: [
@@ -40,6 +46,51 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
     const quantity = form.data.items[0].quantity;
     const setItem = (changes: Partial<(typeof form.data.items)[0]>) =>
         form.setData('items', [{ ...form.data.items[0], ...changes }]);
+    const [registerOpen, setRegisterOpen] = useState(false);
+    const [registerKey, setRegisterKey] = useState(0);
+    const pendingAction = useRef<'checkout' | 'cart' | null>(null);
+    const submitOrder = () => form.post(productOrders.store().url);
+    const addToCartAndGo = () => {
+        if (!selected) {
+            return;
+        }
+
+        addCartItem({
+            product_variant_id: selected.id,
+            product_name: product.name,
+            variant_name: selected.name,
+            sku: selected.sku,
+            quantity,
+            unit_price: selected.sale_price,
+            available_quantity:
+                selected.inventory?.available_quantity ?? 0,
+        });
+        router.visit(store.cart().url);
+    };
+    const openRegister = (action: 'checkout' | 'cart') => {
+        pendingAction.current = action;
+        setRegisterKey((key) => key + 1);
+        setRegisterOpen(true);
+    };
+    const handleRegistered = (data: RegisteredData) => {
+        form.setData({
+            buyer_name: data.name,
+            buyer_email: data.email,
+            buyer_phone: data.phone || form.data.buyer_phone,
+        });
+        const action = pendingAction.current;
+        pendingAction.current = null;
+        router.reload({
+            only: ['auth'],
+            onFinish: () => {
+                if (action === 'cart') {
+                    addToCartAndGo();
+                } else {
+                    submitOrder();
+                }
+            },
+        });
+    };
 
     return (
         <section
@@ -135,7 +186,28 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
                         </Button>
                     </div>
                 </div>
-                <h2 className={'mt-10 text-2xl font-black'}>
+                {!auth.user && (
+                    <div className={'mt-10'}>
+                        <Button
+                            asChild
+                            className={
+                                'w-full bg-cyan-400 text-zinc-950 hover:bg-cyan-300'
+                            }
+                        >
+                            <Link href={login()}>Iniciar sesión</Link>
+                        </Button>
+                        <div
+                            className={
+                                'my-6 flex items-center gap-4 text-xs font-bold tracking-widest text-zinc-500 uppercase'
+                            }
+                        >
+                            <span className={'h-px flex-1 bg-white/10'} />
+                            o
+                            <span className={'h-px flex-1 bg-white/10'} />
+                        </div>
+                    </div>
+                )}
+                <h2 className={`text-2xl font-black ${auth.user ? 'mt-10' : ''}`}>
                     Datos para el pedido
                 </h2>
                 <div className={'mt-5 grid gap-4 sm:grid-cols-2'}>
@@ -200,7 +272,15 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
                         'mt-5 w-full bg-cyan-400 text-zinc-950 hover:bg-cyan-300'
                     }
                     disabled={!selected || form.processing}
-                    onClick={() => form.post(productOrders.store().url)}
+                    onClick={() => {
+                        if (!auth.user) {
+                            openRegister('checkout');
+
+                            return;
+                        }
+
+                        submitOrder();
+                    }}
                 >
                     Comprar con QR
                 </Button>
@@ -209,21 +289,13 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
                     className={'mt-3 w-full border-white/15 bg-transparent'}
                     disabled={!selected}
                     onClick={() => {
-                        if (!selected) {
+                        if (!auth.user) {
+                            openRegister('cart');
+
                             return;
                         }
 
-                        addCartItem({
-                            product_variant_id: selected.id,
-                            product_name: product.name,
-                            variant_name: selected.name,
-                            sku: selected.sku,
-                            quantity,
-                            unit_price: selected.sale_price,
-                            available_quantity:
-                                selected.inventory?.available_quantity ?? 0,
-                        });
-                        router.visit(store.cart().url);
+                        addToCartAndGo();
                     }}
                 >
                     Agregar al carrito
@@ -233,6 +305,21 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
                     El stock se reserva hasta que venza el QR.
                 </p>
             </div>
+            <RegisterModal
+                key={registerKey}
+                open={registerOpen}
+                onOpenChange={(open) => {
+                    setRegisterOpen(open);
+
+                    if (!open) {
+                        pendingAction.current = null;
+                    }
+                }}
+                initialName={form.data.buyer_name}
+                initialEmail={form.data.buyer_email}
+                initialPhone={form.data.buyer_phone}
+                onRegistered={handleRegistered}
+            />
         </section>
     );
 }

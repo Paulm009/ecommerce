@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowDown,
     ChevronLeft,
@@ -17,7 +17,9 @@ import { Input } from '@/components/ui/input';
 import { addCartItem } from '@/lib/cart';
 import { money } from '@/lib/platform';
 import type { Paginated } from '@/lib/platform';
+import { login } from '@/routes';
 import store from '@/routes/store';
+import type { Auth } from '@/types';
 
 type Product = ProductDetail & {
     id: string;
@@ -44,6 +46,7 @@ export default function StoreIndex({
         maxPrice: string;
     };
 }) {
+    const { auth } = usePage<{ auth: Auth }>().props;
     const [search, setSearch] = useState(filters.search);
     const [category, setCategory] = useState(filters.category);
     const [activeProduct, setActiveProduct] = useState<Product | null>(null);
@@ -99,6 +102,15 @@ export default function StoreIndex({
             ?.scrollIntoView({ behavior: 'smooth' });
     };
     const handleAddToCart = (product: Product) => {
+        if (!auth.user) {
+            toast.error('Inicia sesión para agregar productos al carrito.', {
+                position: 'top-right',
+            });
+            router.visit(login().url);
+
+            return;
+        }
+
         const variant =
             product.variants.find(
                 (item) => (item.inventory?.available_quantity ?? 0) > 0,

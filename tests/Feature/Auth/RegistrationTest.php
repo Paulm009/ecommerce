@@ -36,4 +36,22 @@ class RegistrationTest extends TestCase
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
     }
+
+    public function test_new_users_can_register_from_checkout_modal_with_phone()
+    {
+        $response = $this->postJson(route('register.store'), [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'phone' => '+591 70000000',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'email' => 'test@example.com',
+            'phone' => '+591 70000000',
+        ]);
+    }
 }

@@ -1,10 +1,14 @@
+import { router, usePage } from '@inertiajs/react';
 import { ShoppingCart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CartDrawer } from '@/components/store/cart-drawer';
 import { readCart } from '@/lib/cart';
 import { cn } from '@/lib/utils';
+import { login } from '@/routes';
+import type { Auth } from '@/types';
 
 export function CartFloatingBubble() {
+    const { auth } = usePage<{ auth: Auth }>().props;
     const [count, setCount] = useState(0);
     const [open, setOpen] = useState(false);
     const [bump, setBump] = useState(false);
@@ -41,7 +45,15 @@ export function CartFloatingBubble() {
         <>
             <button
                 type={'button'}
-                onClick={() => setOpen(true)}
+                onClick={() => {
+                    if (!auth.user) {
+                        router.visit(login().url);
+
+                        return;
+                    }
+
+                    setOpen(true);
+                }}
                 aria-label={'Abrir carrito'}
                 className={cn(
                     'fixed right-4 z-40 flex size-12 items-center justify-center rounded-full bg-brand text-white shadow-lg shadow-black/40 transition hover:bg-brand-hover sm:right-6 sm:size-14',

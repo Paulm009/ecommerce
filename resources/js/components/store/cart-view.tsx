@@ -1,4 +1,4 @@
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { Minus, Plus, ShieldCheck, ShoppingCart, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
@@ -11,6 +11,8 @@ import { money, sessionToken } from '@/lib/platform';
 import productOrders from '@/routes/product-orders';
 import store from '@/routes/store';
 import type { Auth } from '@/types';
+import { RegisterModal } from './register-modal';
+import type { RegisteredData } from './register-modal';
 
 export function CartView() {
     const { auth } = usePage<{ auth: Auth }>().props;
@@ -56,8 +58,9 @@ export function CartView() {
                     : item,
             ),
         );
-    const submit = (event: FormEvent) => {
-        event.preventDefault();
+    const [registerOpen, setRegisterOpen] = useState(false);
+    const [registerKey, setRegisterKey] = useState(0);
+    const submitOrder = () => {
         form.transform((data) => ({
             ...data,
             items: items.map((item) => ({
@@ -67,6 +70,29 @@ export function CartView() {
         }));
         form.post(productOrders.store().url, {
             onSuccess: () => clearCart(),
+        });
+    };
+    const submit = (event: FormEvent) => {
+        event.preventDefault();
+
+        if (!auth.user) {
+            setRegisterKey((key) => key + 1);
+            setRegisterOpen(true);
+
+            return;
+        }
+
+        submitOrder();
+    };
+    const handleRegistered = (data: RegisteredData) => {
+        form.setData({
+            buyer_name: data.name,
+            buyer_email: data.email,
+            buyer_phone: data.phone || form.data.buyer_phone,
+        });
+        router.reload({
+            only: ['auth'],
+            onFinish: submitOrder,
         });
     };
 
@@ -279,6 +305,15 @@ export function CartView() {
                     </aside>
                 </form>
             )}
+            <RegisterModal
+                key={registerKey}
+                open={registerOpen}
+                onOpenChange={setRegisterOpen}
+                initialName={form.data.buyer_name}
+                initialEmail={form.data.buyer_email}
+                initialPhone={form.data.buyer_phone}
+                onRegistered={handleRegistered}
+            />
         </section>
     );
 }
