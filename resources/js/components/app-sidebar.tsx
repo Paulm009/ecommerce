@@ -10,6 +10,7 @@ import {
     PackageCheck,
     ScanLine,
     Settings,
+    ShoppingBag,
     ShoppingCart,
     TicketCheck,
     Users,
@@ -27,7 +28,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { account, dashboard } from '@/routes';
 import adminEvents from '@/routes/admin/events';
 import inventory from '@/routes/admin/inventory';
 import layouts from '@/routes/admin/layouts';
@@ -42,12 +43,20 @@ import courtesies from '@/routes/courtesies';
 import publicEvents from '@/routes/events';
 import pos from '@/routes/pos';
 import scanner from '@/routes/scanner';
+import store from '@/routes/store';
 import type { Auth, NavItem } from '@/types';
 
 export function AppSidebar() {
     const { auth } = usePage<{ auth: Auth }>().props;
     const can = (permission: string) => auth.permissions?.includes(permission);
-    const mainNavItems: NavItem[] = [
+    const isCustomer = auth.user?.user_type === 'customer';
+    const homeHref = isCustomer ? account() : dashboard();
+    const customerNavItems: NavItem[] = [
+        { title: 'Mis compras', href: account(), icon: LayoutGrid },
+        { title: 'Eventos', href: publicEvents.index(), icon: CalendarDays },
+        { title: 'Tienda', href: store.index(), icon: ShoppingBag },
+    ];
+    const staffNavItems: NavItem[] = [
         can('dashboard.view') && {
             title: 'Dashboard',
             href: dashboard(),
@@ -119,6 +128,7 @@ export function AppSidebar() {
             icon: Users,
         },
     ].filter(Boolean) as NavItem[];
+    const mainNavItems = isCustomer ? customerNavItems : staffNavItems;
     const footerNavItems: NavItem[] = can('settings.manage')
         ? [
               {
@@ -135,7 +145,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link href={homeHref} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

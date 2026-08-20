@@ -19,7 +19,6 @@ createInertiaApp({
             case name.startsWith('reservations/'):
             case name.startsWith('payments/'):
             case name.startsWith('tickets/'):
-            case name.startsWith('account/'):
                 return PublicLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
