@@ -45,7 +45,9 @@ Route::get('tickets/{ticket:public_code}', TicketViewController::class)->name('t
 Route::post('webhooks/bank/payments', BankPaymentWebhookController::class)->name('webhooks.bank.payments');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
-    Route::get('account', CustomerAccountController::class)->name('account');
+    Route::get('account', [CustomerAccountController::class, 'index'])->name('account');
+    Route::get('account/tickets', [CustomerAccountController::class, 'tickets'])->name('account.tickets');
+    Route::get('account/orders', [CustomerAccountController::class, 'orders'])->name('account.orders');
     Route::get('dashboard', DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
 
     Route::prefix('admin')->name('admin.')->group(function (): void {

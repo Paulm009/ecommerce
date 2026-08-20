@@ -7,11 +7,12 @@ import {
     CreditCard,
     LayoutGrid,
     Map,
+    Package,
     PackageCheck,
     ScanLine,
     Settings,
-    ShoppingBag,
     ShoppingCart,
+    Ticket,
     TicketCheck,
     Users,
 } from 'lucide-react';
@@ -29,6 +30,10 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { account, dashboard } from '@/routes';
+import {
+    orders as accountOrders,
+    tickets as accountTickets,
+} from '@/routes/account';
 import adminEvents from '@/routes/admin/events';
 import inventory from '@/routes/admin/inventory';
 import layouts from '@/routes/admin/layouts';
@@ -43,7 +48,6 @@ import courtesies from '@/routes/courtesies';
 import publicEvents from '@/routes/events';
 import pos from '@/routes/pos';
 import scanner from '@/routes/scanner';
-import store from '@/routes/store';
 import type { Auth, NavItem } from '@/types';
 
 export function AppSidebar() {
@@ -52,9 +56,9 @@ export function AppSidebar() {
     const isCustomer = auth.user?.user_type === 'customer';
     const homeHref = isCustomer ? account() : dashboard();
     const customerNavItems: NavItem[] = [
-        { title: 'Mis compras', href: account(), icon: LayoutGrid },
-        { title: 'Eventos', href: publicEvents.index(), icon: CalendarDays },
-        { title: 'Tienda', href: store.index(), icon: ShoppingBag },
+        { title: 'Mi perfil', href: account(), icon: LayoutGrid },
+        { title: 'Mis compras', href: accountTickets(), icon: Ticket },
+        { title: 'Mis pedidos', href: accountOrders(), icon: Package },
     ];
     const staffNavItems: NavItem[] = [
         can('dashboard.view') && {
