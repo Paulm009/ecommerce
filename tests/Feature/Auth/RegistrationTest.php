@@ -34,6 +34,8 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        // Self-registration always creates a customer, who lands on their
+        // account page rather than the staff dashboard.
+        $response->assertRedirect(route('account', absolute: false));
     }
 }
