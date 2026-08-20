@@ -41,6 +41,18 @@ export function CartFloatingBubble() {
         };
     }, []);
 
+    useEffect(() => {
+        const onOpenDrawer = () => setOpen(true);
+
+        window.addEventListener('eventa-cart-open-drawer', onOpenDrawer);
+
+        return () =>
+            window.removeEventListener(
+                'eventa-cart-open-drawer',
+                onOpenDrawer,
+            );
+    }, []);
+
     return (
         <>
             <button

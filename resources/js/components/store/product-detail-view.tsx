@@ -1,6 +1,7 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { Minus, Plus, ShieldCheck, ShoppingBag } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +9,6 @@ import { addCartItem } from '@/lib/cart';
 import { money, sessionToken } from '@/lib/platform';
 import { login } from '@/routes';
 import productOrders from '@/routes/product-orders';
-import store from '@/routes/store';
 import type { Auth } from '@/types';
 import { RegisterModal } from './register-modal';
 import type { RegisteredData } from './register-modal';
@@ -28,7 +28,13 @@ export type ProductDetail = {
     variants: ProductDetailVariant[];
 };
 
-export function ProductDetailView({ product }: { product: ProductDetail }) {
+export function ProductDetailView({
+    product,
+    onAddedToCart,
+}: {
+    product: ProductDetail;
+    onAddedToCart?: () => void;
+}) {
     const { auth } = usePage<{ auth: Auth }>().props;
     const form = useForm({
         buyer_name: auth.user?.name ?? '',
@@ -65,7 +71,12 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
             available_quantity:
                 selected.inventory?.available_quantity ?? 0,
         });
-        router.visit(store.cart().url);
+        window.dispatchEvent(new Event('eventa-cart-open-drawer'));
+        onAddedToCart?.();
+        toast.success(`${product.name} se agregó al carrito.`, {
+            position: 'bottom-right',
+            style: { marginRight: '4.5rem' },
+        });
     };
     const openRegister = (action: 'checkout' | 'cart') => {
         pendingAction.current = action;
@@ -207,58 +218,78 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
                         </div>
                     </div>
                 )}
-                <h2 className={`text-2xl font-black ${auth.user ? 'mt-10' : ''}`}>
-                    Datos para el pedido
-                </h2>
-                <div className={'mt-5 grid gap-4 sm:grid-cols-2'}>
-                    {[
-                        ['buyer_name', 'Nombre completo', 'Ana Pérez', 'text'],
-                        [
-                            'buyer_email',
-                            'Correo',
-                            'ana@ejemplo.com',
-                            'email',
-                        ],
-                        ['buyer_phone', 'Teléfono', '+591 70000000', 'tel'],
-                        [
-                            'buyer_identity_document',
-                            'Documento',
-                            '1234567',
-                            'text',
-                        ],
-                    ].map(([field, label, placeholder, type]) => (
-                        <div key={field} className={'space-y-2'}>
-                            <Label>{label}</Label>
-                            <Input
-                                type={type}
-                                placeholder={placeholder}
-                                value={
-                                    form.data[
-                                        field as keyof typeof form.data
-                                    ] as string
-                                }
-                                onChange={(e) =>
-                                    form.setData(
-                                        field as keyof typeof form.data,
-                                        e.target.value as never,
-                                    )
-                                }
-                                className={'border-white/10 bg-white/5'}
-                            />
-                            {form.errors[
-                                field as keyof typeof form.errors
-                            ] && (
-                                <p className={'text-xs text-red-400'}>
-                                    {
-                                        form.errors[
-                                            field as keyof typeof form.errors
-                                        ]
-                                    }
-                                </p>
-                            )}
+                {!auth.user && (
+                    <>
+                        <h2 className={'text-2xl font-black'}>
+                            Datos para el pedido
+                        </h2>
+                        <div className={'mt-5 grid gap-4 sm:grid-cols-2'}>
+                            {[
+                                [
+                                    'buyer_name',
+                                    'Nombre completo',
+                                    'Ana Pérez',
+                                    'text',
+                                ],
+                                [
+                                    'buyer_email',
+                                    'Correo',
+                                    'ana@ejemplo.com',
+                                    'email',
+                                ],
+                                [
+                                    'buyer_phone',
+                                    'Teléfono',
+                                    '+591 70000000',
+                                    'tel',
+                                ],
+                                [
+                                    'buyer_identity_document',
+                                    'Documento',
+                                    '1234567',
+                                    'text',
+                                ],
+                            ].map(([field, label, placeholder, type]) => (
+                                <div key={field} className={'space-y-2'}>
+                                    <Label>{label}</Label>
+                                    <Input
+                                        type={type}
+                                        placeholder={placeholder}
+                                        value={
+                                            form.data[
+                                                field as keyof typeof form.data
+                                            ] as string
+                                        }
+                                        onChange={(e) =>
+                                            form.setData(
+                                                field as keyof typeof form.data,
+                                                e.target.value as never,
+                                            )
+                                        }
+                                        className={
+                                            'border-white/10 bg-white/5'
+                                        }
+                                    />
+                                    {form.errors[
+                                        field as keyof typeof form.errors
+                                    ] && (
+                                        <p
+                                            className={
+                                                'text-xs text-red-400'
+                                            }
+                                        >
+                                            {
+                                                form.errors[
+                                                    field as keyof typeof form.errors
+                                                ]
+                                            }
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
+                    </>
+                )}
                 <div
                     className={'mt-8 flex items-center justify-between text-xl'}
                 >

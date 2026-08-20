@@ -16,11 +16,13 @@ final class CreateProductOrderRequest extends FormRequest
 
     public function rules(): array
     {
+        $guestRule = $this->user() ? 'nullable' : 'required';
+
         return [
             'buyer_name' => ['required', 'string', 'max:180'],
-            'buyer_email' => ['required', 'email', 'max:180'],
-            'buyer_phone' => ['required', 'string', 'max:40'],
-            'buyer_identity_document' => ['required', 'string', 'max:80'],
+            'buyer_email' => [$guestRule, 'email', 'max:180'],
+            'buyer_phone' => [$guestRule, 'string', 'max:40'],
+            'buyer_identity_document' => ['nullable', 'string', 'max:80'],
             'session_token' => ['nullable', 'string', 'min:20', 'max:180'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', 'uuid', Rule::exists('product_variants', 'id')],

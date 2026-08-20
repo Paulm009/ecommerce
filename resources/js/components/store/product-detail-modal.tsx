@@ -17,7 +17,11 @@ export function ProductDetailModal({
                 }
             >
                 {product && (
-                    <ProductDetailView key={product.slug} product={product} />
+                    <ProductDetailView
+                        key={product.slug}
+                        product={product}
+                        onAddedToCart={() => onOpenChange(false)}
+                    />
                 )}
             </DialogContent>
         </Dialog>
