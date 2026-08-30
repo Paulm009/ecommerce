@@ -6,7 +6,7 @@ export function ProductDetailModal({
     product,
     onOpenChange,
 }: {
-    product: (ProductDetail & { slug: string }) | null;
+    product: ProductDetail | null;
     onOpenChange: (open: boolean) => void;
 }) {
     return (
@@ -20,7 +20,7 @@ export function ProductDetailModal({
                     <ProductDetailView
                         key={product.slug}
                         product={product}
-                        onAddedToCart={() => onOpenChange(false)}
+                        onClose={() => onOpenChange(false)}
                     />
                 )}
             </DialogContent>

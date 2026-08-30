@@ -72,8 +72,8 @@ final class DemoFlowsSeeder extends Seeder
 
         $polera = ProductVariant::query()->where('sku', 'EV-POL-NEG-S')->firstOrFail();
         $gorra = ProductVariant::query()->where('sku', 'EV-GOR-001')->firstOrFail();
-        $vaso = ProductVariant::query()->where('sku', 'EV-VAS-001')->firstOrFail();
-        $llavero = ProductVariant::query()->where('sku', 'EV-LLA-001')->firstOrFail();
+        $sticker = ProductVariant::query()->where('sku', 'EV-STK-001')->firstOrFail();
+        $pin = ProductVariant::query()->where('sku', 'EV-PIN-001')->firstOrFail();
 
         $paidOrderPayment = $this->productOrder($company, [
             ['product_variant_id' => $polera->id, 'quantity' => 2],
@@ -81,7 +81,7 @@ final class DemoFlowsSeeder extends Seeder
         ], 'Pedido Web Pagado Multiproducto');
         app(ConfirmPayment::class)->handle($paidOrderPayment, 'BANK-ORDER-PAID-001', 'EVENT-ORDER-PAID-001', 'demo_seed');
         $this->productOrder($company, [['product_variant_id' => $gorra->id, 'quantity' => 2]], 'Pedido Web Pendiente');
-        $expiredOrderPayment = $this->productOrder($company, [['product_variant_id' => $vaso->id, 'quantity' => 1]], 'Pedido Web Vencido');
+        $expiredOrderPayment = $this->productOrder($company, [['product_variant_id' => $sticker->id, 'quantity' => 1]], 'Pedido Web Vencido');
         ProductOrder::query()->where('sale_id', $expiredOrderPayment->sale_id)->update(['payment_expires_at' => now()->subMinute()]);
         $expiredOrderPayment->update(['qr_expires_at' => now()->subMinute()]);
 
@@ -90,10 +90,10 @@ final class DemoFlowsSeeder extends Seeder
         CashMovement::query()->create(['cash_session_id' => $cashSession->id, 'movement_type' => 'manual', 'direction' => 'in', 'amount' => '100.00', 'description' => 'Refuerzo de fondo de cambio', 'created_by_user_id' => $admin->id, 'authorized_by_user_id' => $admin->id]);
         CashMovement::query()->create(['cash_session_id' => $cashSession->id, 'movement_type' => 'manual', 'direction' => 'out', 'amount' => '35.00', 'description' => 'Gasto operativo documentado', 'created_by_user_id' => $admin->id, 'authorized_by_user_id' => $admin->id]);
 
-        $paidPosPayment = app(CreatePosSale::class)->handle($company, $cashSession, $seller, [['product_variant_id' => $llavero->id, 'quantity' => 2]]);
+        $paidPosPayment = app(CreatePosSale::class)->handle($company, $cashSession, $seller, [['product_variant_id' => $pin->id, 'quantity' => 2]]);
         app(ConfirmPayment::class)->handle($paidPosPayment, 'BANK-POS-PAID-001', 'EVENT-POS-PAID-001', 'demo_seed');
-        app(CreatePosSale::class)->handle($company, $cashSession, $seller, [['product_variant_id' => $vaso->id, 'quantity' => 2]]);
-        $expiredPosPayment = app(CreatePosSale::class)->handle($company, $cashSession, $seller, [['product_variant_id' => $llavero->id, 'quantity' => 1]]);
+        app(CreatePosSale::class)->handle($company, $cashSession, $seller, [['product_variant_id' => $sticker->id, 'quantity' => 2]]);
+        $expiredPosPayment = app(CreatePosSale::class)->handle($company, $cashSession, $seller, [['product_variant_id' => $pin->id, 'quantity' => 1]]);
         $expiredPosPayment->update(['qr_expires_at' => now()->subMinute()]);
 
         app(ReleaseExpiredHolds::class)->handle();

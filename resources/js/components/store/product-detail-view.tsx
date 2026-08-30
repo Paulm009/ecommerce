@@ -1,12 +1,13 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Minus, Plus, ShieldCheck, ShoppingBag } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Minus, Plus, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { addCartItem } from '@/lib/cart';
 import { money, sessionToken } from '@/lib/platform';
+import { storeProductImage } from '@/lib/store-images';
 import { login } from '@/routes';
 import productOrders from '@/routes/product-orders';
 import type { Auth } from '@/types';
@@ -23,6 +24,7 @@ export type ProductDetailVariant = {
 
 export type ProductDetail = {
     name: string;
+    slug: string;
     description: string | null;
     categories: { name: string }[];
     variants: ProductDetailVariant[];
@@ -30,10 +32,10 @@ export type ProductDetail = {
 
 export function ProductDetailView({
     product,
-    onAddedToCart,
+    onClose,
 }: {
     product: ProductDetail;
-    onAddedToCart?: () => void;
+    onClose?: () => void;
 }) {
     const { auth } = usePage<{ auth: Auth }>().props;
     const form = useForm({
@@ -52,11 +54,21 @@ export function ProductDetailView({
     const quantity = form.data.items[0].quantity;
     const setItem = (changes: Partial<(typeof form.data.items)[0]>) =>
         form.setData('items', [{ ...form.data.items[0], ...changes }]);
-    const [registerOpen, setRegisterOpen] = useState(false);
-    const [registerKey, setRegisterKey] = useState(0);
-    const pendingAction = useRef<'checkout' | 'cart' | null>(null);
+    // Cierra el modal contenedor (si lo hay) y ejecuta la acción en el
+    // siguiente tick. Así Radix desmonta su overlay antes de que naveguemos
+    // o abramos el carrito, y no queda la pantalla bloqueada en negro.
+    const closeThen = (run: () => void) => {
+        if (!onClose) {
+            run();
+
+            return;
+        }
+
+        onClose();
+        window.setTimeout(run, 220);
+    };
     const submitOrder = () => form.post(productOrders.store().url);
-    const addToCartAndGo = () => {
+    const addItemToCart = () => {
         if (!selected) {
             return;
         }
@@ -71,35 +83,32 @@ export function ProductDetailView({
             available_quantity:
                 selected.inventory?.available_quantity ?? 0,
         });
-        window.dispatchEvent(new Event('eventa-cart-open-drawer'));
-        onAddedToCart?.();
         toast.success(`${product.name} se agregó al carrito.`, {
             position: 'bottom-right',
             style: { marginRight: '4.5rem' },
         });
     };
-    const openRegister = (action: 'checkout' | 'cart') => {
-        pendingAction.current = action;
+    const addToCartAndGo = () => {
+        addItemToCart();
+        window.dispatchEvent(new Event('eventa-cart-open-drawer'));
+    };
+    const [registerOpen, setRegisterOpen] = useState(false);
+    const [registerKey, setRegisterKey] = useState(0);
+    const openRegister = () => {
         setRegisterKey((key) => key + 1);
         setRegisterOpen(true);
     };
     const handleRegistered = (data: RegisteredData) => {
-        form.setData({
+        form.setData((current) => ({
+            ...current,
             buyer_name: data.name,
             buyer_email: data.email,
-            buyer_phone: data.phone || form.data.buyer_phone,
-        });
-        const action = pendingAction.current;
-        pendingAction.current = null;
+            buyer_phone: data.phone || current.buyer_phone,
+        }));
+        // Cuenta creada (ya con sesión): refrescamos auth y enviamos el pedido.
         router.reload({
             only: ['auth'],
-            onFinish: () => {
-                if (action === 'cart') {
-                    addToCartAndGo();
-                } else {
-                    submitOrder();
-                }
-            },
+            onFinish: () => closeThen(submitOrder),
         });
     };
 
@@ -111,10 +120,14 @@ export function ProductDetailView({
         >
             <div
                 className={
-                    'grid aspect-square place-items-center rounded-[2rem] bg-gradient-to-br from-cyan-500 via-blue-600 to-fuchsia-700'
+                    'grid aspect-square place-items-center overflow-hidden rounded-[2rem] bg-gradient-to-br from-cyan-500 via-blue-600 to-fuchsia-700'
                 }
             >
-                <ShoppingBag className={'size-40 text-white/85'} />
+                <img
+                    src={storeProductImage(product.slug)}
+                    alt={product.name}
+                    className={'h-full w-full object-cover'}
+                />
             </div>
             <div>
                 <p
@@ -198,11 +211,12 @@ export function ProductDetailView({
                     </div>
                 </div>
                 {!auth.user && (
-                    <div className={'mt-10'}>
+                    <>
                         <Button
                             asChild
+                            variant={'outline'}
                             className={
-                                'w-full bg-cyan-400 text-zinc-950 hover:bg-cyan-300'
+                                'mt-10 w-full border-white/15 bg-transparent'
                             }
                         >
                             <Link href={login()}>Iniciar sesión</Link>
@@ -216,10 +230,6 @@ export function ProductDetailView({
                             o
                             <span className={'h-px flex-1 bg-white/10'} />
                         </div>
-                    </div>
-                )}
-                {!auth.user && (
-                    <>
                         <h2 className={'text-2xl font-black'}>
                             Datos para el pedido
                         </h2>
@@ -266,18 +276,12 @@ export function ProductDetailView({
                                                 e.target.value as never,
                                             )
                                         }
-                                        className={
-                                            'border-white/10 bg-white/5'
-                                        }
+                                        className={'border-white/10 bg-white/5'}
                                     />
                                     {form.errors[
                                         field as keyof typeof form.errors
                                     ] && (
-                                        <p
-                                            className={
-                                                'text-xs text-red-400'
-                                            }
-                                        >
+                                        <p className={'text-xs text-red-400'}>
                                             {
                                                 form.errors[
                                                     field as keyof typeof form.errors
@@ -305,12 +309,12 @@ export function ProductDetailView({
                     disabled={!selected || form.processing}
                     onClick={() => {
                         if (!auth.user) {
-                            openRegister('checkout');
+                            openRegister();
 
                             return;
                         }
 
-                        submitOrder();
+                        closeThen(submitOrder);
                     }}
                 >
                     Comprar con QR
@@ -319,15 +323,7 @@ export function ProductDetailView({
                     variant={'outline'}
                     className={'mt-3 w-full border-white/15 bg-transparent'}
                     disabled={!selected}
-                    onClick={() => {
-                        if (!auth.user) {
-                            openRegister('cart');
-
-                            return;
-                        }
-
-                        addToCartAndGo();
-                    }}
+                    onClick={() => closeThen(addToCartAndGo)}
                 >
                     Agregar al carrito
                 </Button>
@@ -339,13 +335,7 @@ export function ProductDetailView({
             <RegisterModal
                 key={registerKey}
                 open={registerOpen}
-                onOpenChange={(open) => {
-                    setRegisterOpen(open);
-
-                    if (!open) {
-                        pendingAction.current = null;
-                    }
-                }}
+                onOpenChange={setRegisterOpen}
                 initialName={form.data.buyer_name}
                 initialEmail={form.data.buyer_email}
                 initialPhone={form.data.buyer_phone}

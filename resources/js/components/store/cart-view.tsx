@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { clearCart, readCart, writeCart } from '@/lib/cart';
 import type { CartItem } from '@/lib/cart';
 import { money, sessionToken } from '@/lib/platform';
+import { login } from '@/routes';
 import productOrders from '@/routes/product-orders';
 import store from '@/routes/store';
 import type { Auth } from '@/types';
@@ -85,15 +86,13 @@ export function CartView() {
         submitOrder();
     };
     const handleRegistered = (data: RegisteredData) => {
-        form.setData({
+        form.setData((current) => ({
+            ...current,
             buyer_name: data.name,
             buyer_email: data.email,
-            buyer_phone: data.phone || form.data.buyer_phone,
-        });
-        router.reload({
-            only: ['auth'],
-            onFinish: submitOrder,
-        });
+            buyer_phone: data.phone || current.buyer_phone,
+        }));
+        router.reload({ only: ['auth'], onFinish: submitOrder });
     };
 
     return (
@@ -230,55 +229,80 @@ export function CartView() {
                             Finalizar compra
                         </h2>
                         {!auth.user && (
-                            <div className={'mt-5 space-y-4'}>
-                                {[
-                                    ['buyer_name', 'Nombre completo', 'text'],
-                                    ['buyer_email', 'Correo', 'email'],
-                                    ['buyer_phone', 'Telefono', 'tel'],
-                                    [
-                                        'buyer_identity_document',
-                                        'Documento',
-                                        'text',
-                                    ],
-                                ].map(([field, label, type]) => (
-                                    <div key={field} className={'space-y-2'}>
-                                        <Label>{label}</Label>
-                                        <Input
-                                            type={type}
-                                            value={
-                                                form.data[
-                                                    field as keyof typeof form.data
-                                                ] as string
-                                            }
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    field as keyof typeof form.data,
-                                                    event.target
-                                                        .value as never,
-                                                )
-                                            }
-                                            className={
-                                                'border-white/10 bg-white/5'
-                                            }
-                                        />
-                                        {form.errors[
-                                            field as keyof typeof form.errors
-                                        ] && (
-                                            <p
+                            <>
+                                <p
+                                    className={
+                                        'mt-4 text-sm text-zinc-400'
+                                    }
+                                >
+                                    Cargá tus datos y creá tu contraseña al
+                                    confirmar.{' '}
+                                    <Link
+                                        href={login()}
+                                        className={
+                                            'text-cyan-300 hover:underline'
+                                        }
+                                    >
+                                        ¿Ya tenés cuenta?
+                                    </Link>
+                                </p>
+                                <div className={'mt-5 space-y-4'}>
+                                    {[
+                                        [
+                                            'buyer_name',
+                                            'Nombre completo',
+                                            'text',
+                                        ],
+                                        ['buyer_email', 'Correo', 'email'],
+                                        ['buyer_phone', 'Telefono', 'tel'],
+                                        [
+                                            'buyer_identity_document',
+                                            'Documento',
+                                            'text',
+                                        ],
+                                    ].map(([field, label, type]) => (
+                                        <div
+                                            key={field}
+                                            className={'space-y-2'}
+                                        >
+                                            <Label>{label}</Label>
+                                            <Input
+                                                type={type}
+                                                value={
+                                                    form.data[
+                                                        field as keyof typeof form.data
+                                                    ] as string
+                                                }
+                                                onChange={(event) =>
+                                                    form.setData(
+                                                        field as keyof typeof form.data,
+                                                        event.target
+                                                            .value as never,
+                                                    )
+                                                }
                                                 className={
-                                                    'text-xs text-red-400'
+                                                    'border-white/10 bg-white/5'
                                                 }
-                                            >
-                                                {
-                                                    form.errors[
-                                                        field as keyof typeof form.errors
-                                                    ]
-                                                }
-                                            </p>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                                            />
+                                            {form.errors[
+                                                field as keyof typeof form.errors
+                                            ] && (
+                                                <p
+                                                    className={
+                                                        'text-xs text-red-400'
+                                                    }
+                                                >
+                                                    {
+                                                        form.errors[
+                                                            field as keyof typeof form.errors
+                                                        ]
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
                         )}
                         {form.errors.items && (
                             <p className={'mt-4 text-sm text-red-400'}>
@@ -299,7 +323,9 @@ export function CartView() {
                             }
                             disabled={form.processing || items.length === 0}
                         >
-                            Generar pago QR
+                            {auth.user
+                                ? 'Generar pago QR'
+                                : 'Confirmar compra'}
                         </Button>
                         <p className={'mt-4 flex gap-2 text-xs text-zinc-500'}>
                             <ShieldCheck className={'size-4'} />

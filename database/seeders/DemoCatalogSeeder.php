@@ -159,9 +159,14 @@ final class DemoCatalogSeeder extends Seeder
         $products = [
             ['Polera EVENTA Tour', 'Indumentaria oficial en algodón premium.', 'variant', 'indumentaria', true, [['Negra S', 'EV-POL-NEG-S', '789000001', '120.00', '55.00', 45, 8], ['Negra M', 'EV-POL-NEG-M', '789000002', '120.00', '55.00', 45, 8], ['Negra L', 'EV-POL-NEG-L', '789000003', '120.00', '55.00', 35, 8]]],
             ['Gorra Festival', 'Gorra ajustable edición festival.', 'simple', 'indumentaria', true, [['Única', 'EV-GOR-001', '789000010', '85.00', '32.00', 30, 6]]],
-            ['Vaso coleccionable', 'Vaso reutilizable con arte de temporada.', 'simple', 'coleccionables', false, [['Única', 'EV-VAS-001', '789000020', '35.00', '12.00', 80, 15]]],
-            ['Llavero escenario', 'Llavero metálico del escenario principal.', 'simple', 'accesorios', false, [['Única', 'EV-LLA-001', '789000030', '28.00', '8.00', 50, 10]]],
             ['Póster numerado', 'Impresión limitada para coleccionistas.', 'simple', 'coleccionables', true, [['Edición 2026', 'EV-POS-001', '789000040', '65.00', '18.00', 8, 5]]],
+            ['Buzo con capucha', 'Buzo oversize de frisa con estampa del tour.', 'variant', 'indumentaria', true, [['Gris M', 'EV-BUZ-GRI-M', '789000050', '210.00', '95.00', 25, 5], ['Gris L', 'EV-BUZ-GRI-L', '789000051', '210.00', '95.00', 20, 5]]],
+            ['Tote bag lona', 'Bolso de lona resistente con serigrafía.', 'simple', 'accesorios', true, [['Única', 'EV-TOT-001', '789000060', '55.00', '18.00', 60, 12]]],
+            ['Sticker pack', 'Set de 12 stickers vinílicos resistentes al agua.', 'simple', 'coleccionables', true, [['Pack x12', 'EV-STK-001', '789000070', '25.00', '7.00', 120, 20]]],
+            ['Taza cerámica', 'Taza de cerámica esmaltada, 350 ml.', 'simple', 'coleccionables', true, [['Única', 'EV-TAZ-001', '789000080', '45.00', '15.00', 70, 12]]],
+            ['Pin esmaltado', 'Pin metálico con esmalte duro y broche mariposa.', 'simple', 'accesorios', true, [['Única', 'EV-PIN-001', '789000090', '18.00', '5.00', 150, 25]]],
+            ['Bandana estampada', 'Bandana de algodón 55x55 cm.', 'simple', 'accesorios', true, [['Única', 'EV-BAN-001', '789000100', '32.00', '10.00', 40, 8]]],
+            ['Camiseta tie-dye', 'Camiseta teñida a mano, cada pieza es única.', 'variant', 'indumentaria', true, [['S', 'EV-TDY-001', '789000110', '135.00', '58.00', 18, 4], ['M', 'EV-TDY-002', '789000111', '135.00', '58.00', 22, 4]]],
         ];
 
         foreach ($products as [$name, $description, $type, $category, $featured, $variants]) {
