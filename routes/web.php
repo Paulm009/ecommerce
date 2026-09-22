@@ -36,7 +36,7 @@ Route::post('reservations/{reservation}/confirm', [EventReservationController::c
 Route::get('store', [StoreCatalogController::class, 'index'])->name('store.index');
 Route::inertia('store/cart', 'store/cart')->name('store.cart');
 Route::get('store/{product:slug}', [StoreCatalogController::class, 'show'])->name('store.show');
-Route::post('checkout/products', [ProductCheckoutController::class, 'store'])->name('product-orders.store');
+Route::post('checkout/products', [ProductCheckoutController::class, 'store'])->middleware('auth')->name('product-orders.store');
 
 Route::get('payments/{paymentAttempt}', [PaymentController::class, 'show'])->name('payments.show');
 Route::get('payments/{paymentAttempt}/status', [PaymentController::class, 'status'])->name('payments.status');

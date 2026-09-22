@@ -29,7 +29,7 @@ it('seeds every operational flow with coherent states', function (): void {
     $this->assertDatabaseCount('users', 7);
     $this->assertDatabaseCount('layout_templates', 5);
     $this->assertDatabaseCount('events', 6);
-    $this->assertDatabaseCount('products', 5);
+    $this->assertDatabaseCount('products', 10);
     $this->assertDatabaseCount('product_orders', 3);
     $this->assertDatabaseCount('pos_sales', 3);
     $this->assertDatabaseCount('payment_incidents', 1);

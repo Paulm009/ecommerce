@@ -14,6 +14,32 @@
         'Noto Color Emoji';
     --font-display: 'Anton', 'Instrument Sans', ui-sans-serif, sans-serif;
 
+    /* Marquee infinito: lista duplicada, se desplaza -50% y loopea sin salto */
+    --animate-marquee: marquee 40s linear infinite;
+
+    @keyframes marquee {
+        from {
+            transform: translateX(0);
+        }
+
+        to {
+            transform: translateX(-50%);
+        }
+    }
+
+    /* Reflejo que barre el texto (background-clip: text) */
+    --animate-shine: shine 3s linear infinite;
+
+    @keyframes shine {
+        from {
+            background-position: 200% center;
+        }
+
+        to {
+            background-position: -200% center;
+        }
+    }
+
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
@@ -151,5 +177,12 @@
 
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-marquee,
+    .animate-shine {
+        animation: none;
     }
 }
