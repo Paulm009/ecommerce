@@ -18,33 +18,55 @@ export function PageHeader({
     return (
         <div
             className={
-                'flex flex-col justify-between gap-5 border-b pb-6 sm:flex-row sm:items-end'
+                'relative flex flex-col justify-between gap-5 pb-7 sm:flex-row sm:items-end'
             }
         >
-            <div>
+            <div
+                aria-hidden
+                className={
+                    'absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-brand via-brand/30 to-transparent'
+                }
+            />
+            <div
+                aria-hidden
+                className={
+                    'pointer-events-none absolute -top-24 -left-24 size-72 rounded-full bg-brand/15 blur-3xl'
+                }
+            />
+            <div className={'relative'}>
                 {eyebrow && (
                     <p
                         className={
-                            'text-xs font-bold tracking-[.2em] text-muted-foreground uppercase'
+                            'flex items-center gap-2 text-xs font-bold tracking-[.25em] text-brand-light uppercase'
                         }
                     >
+                        <span
+                            aria-hidden
+                            className={
+                                'h-0.5 w-8 rounded-full bg-gradient-to-r from-brand to-brand-light'
+                            }
+                        />
                         {eyebrow}
                     </p>
                 )}
-                <h1 className={'mt-2 text-3xl font-black tracking-tight'}>
+                <h1
+                    className={
+                        'mt-3 font-display text-4xl leading-none tracking-wide uppercase sm:text-5xl'
+                    }
+                >
                     {title}
                 </h1>
                 {description && (
                     <p
                         className={
-                            'mt-2 max-w-2xl text-sm text-muted-foreground'
+                            'mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base'
                         }
                     >
                         {description}
                     </p>
                 )}
             </div>
-            {action}
+            {action && <div className={'relative'}>{action}</div>}
         </div>
     );
 }
@@ -78,9 +100,12 @@ export function Panel({
 export function StateBadge({ status }: { status: string }) {
     const eventStatusClassName = {
         draft: 'border-yellow-200 bg-yellow-100 text-yellow-900 dark:border-yellow-900/40 dark:bg-yellow-950/40 dark:text-yellow-100',
-        published: 'border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-100',
-        finished: 'border-slate-300 bg-slate-200 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100',
-        cancelled: 'border-red-200 bg-red-100 text-red-900 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-100',
+        published:
+            'border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-100',
+        finished:
+            'border-slate-300 bg-slate-200 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100',
+        cancelled:
+            'border-red-200 bg-red-100 text-red-900 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-100',
     }[status];
     const positive = [
         'active',

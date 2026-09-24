@@ -29,7 +29,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { account, dashboard } from '@/routes';
+import { account, dashboard, home } from '@/routes';
 import {
     orders as accountOrders,
     tickets as accountTickets,
@@ -54,10 +54,9 @@ export function AppSidebar() {
     const { auth } = usePage<{ auth: Auth }>().props;
     const can = (permission: string) => auth.permissions?.includes(permission);
     const isCustomer = auth.user?.user_type === 'customer';
-    const homeHref = isCustomer ? account() : dashboard();
     const customerNavItems: NavItem[] = [
         { title: 'Mi perfil', href: account(), icon: LayoutGrid },
-        { title: 'Mis compras', href: accountTickets(), icon: Ticket },
+        { title: 'Mis entradas', href: accountTickets(), icon: Ticket },
         { title: 'Mis pedidos', href: accountOrders(), icon: Package },
     ];
     const staffNavItems: NavItem[] = [
@@ -149,7 +148,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={homeHref} prefetch>
+                            <Link href={home()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
