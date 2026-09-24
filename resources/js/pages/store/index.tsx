@@ -5,6 +5,8 @@ import {
     ChevronRight,
     PackageSearch,
     Search,
+    SlidersHorizontal,
+    X,
 } from 'lucide-react';
 import type { FormEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -13,6 +15,13 @@ import { ProductDetailModal } from '@/components/store/product-detail-modal';
 import type { ProductDetail } from '@/components/store/product-detail-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { addCartItem } from '@/lib/cart';
 import { money } from '@/lib/platform';
 import type { Paginated } from '@/lib/platform';
@@ -22,6 +31,23 @@ import store from '@/routes/store';
 type Product = ProductDetail & {
     id: string;
     is_featured: boolean;
+};
+
+const sortOptions = [
+    { value: 'featured', label: 'Destacados' },
+    { value: 'name_asc', label: 'Nombre: A–Z' },
+    { value: 'name_desc', label: 'Nombre: Z–A' },
+    { value: 'price_asc', label: 'Precio: menor a mayor' },
+    { value: 'price_desc', label: 'Precio: mayor a menor' },
+    { value: 'newest', label: 'Más recientes' },
+];
+
+type CatalogFilters = {
+    search: string;
+    category: string;
+    sort: string;
+    minPrice: string;
+    maxPrice: string;
 };
 
 const heroImages = [
@@ -52,16 +78,31 @@ export default function StoreIndex({
         category: string;
         minPrice: string;
         maxPrice: string;
+        sort: string;
     };
 }) {
     const [search, setSearch] = useState(filters.search);
     const [category, setCategory] = useState(filters.category);
+    const [sort, setSort] = useState(filters.sort);
+    const [minPrice, setMinPrice] = useState(filters.minPrice);
+    const [maxPrice, setMaxPrice] = useState(filters.maxPrice);
+    const [filtersOpen, setFiltersOpen] = useState(
+        Boolean(filters.sort || filters.minPrice || filters.maxPrice),
+    );
+    const activeFilterCount = [
+        filters.sort,
+        filters.minPrice,
+        filters.maxPrice,
+    ].filter(Boolean).length;
     const [activeProduct, setActiveProduct] = useState<Product | null>(null);
     const [heroImageIndex, setHeroImageIndex] = useState(0);
     const [heroImageVisible, setHeroImageVisible] = useState(true);
     const featuredCount = featuredProducts.length;
     const [featuredIndex, setFeaturedIndex] = useState(0);
     const dragStartX = useRef<number | null>(null);
+    const categoryMarqueeRef = useRef<HTMLDivElement>(null);
+    const categoryListRef = useRef<HTMLUListElement>(null);
+    const [categoryRepeats, setCategoryRepeats] = useState(1);
     const goFeatured = (delta: number) =>
         setFeaturedIndex((index) =>
             featuredCount > 0
@@ -110,9 +151,7 @@ export default function StoreIndex({
         const interval = setInterval(() => {
             setHeroImageVisible(false);
             setTimeout(() => {
-                setHeroImageIndex(
-                    (index) => (index + 1) % heroImages.length,
-                );
+                setHeroImageIndex((index) => (index + 1) % heroImages.length);
                 setHeroImageVisible(true);
             }, 300);
         }, 4000);
@@ -133,11 +172,57 @@ export default function StoreIndex({
         return () => clearInterval(interval);
     }, [featuredCount, featuredIndex]);
 
-    const submit = (event: FormEvent) => {
-        event.preventDefault();
+    // Repite las categorías hasta cubrir el ancho visible, para que el
+    // marquee nunca deje un hueco vacío al completar la vuelta.
+    useEffect(() => {
+        const container = categoryMarqueeRef.current;
+        const list = categoryListRef.current;
+
+        if (!container || !list) {
+            return;
+        }
+
+        const updateRepeats = () => {
+            setCategoryRepeats((current) => {
+                const setWidth = list.offsetWidth / current;
+
+                if (setWidth <= 0) {
+                    return current;
+                }
+
+                return Math.ceil(container.offsetWidth / setWidth) + 1;
+            });
+        };
+
+        const observer = new ResizeObserver(updateRepeats);
+        observer.observe(container);
+        observer.observe(list);
+
+        return () => observer.disconnect();
+    }, [categories.length]);
+
+    const applyFilters = (overrides: Partial<CatalogFilters> = {}) => {
+        const next: CatalogFilters = {
+            search,
+            category,
+            sort,
+            minPrice,
+            maxPrice,
+            ...overrides,
+        };
+        const query = {
+            search: next.search,
+            category: next.category,
+            sort: next.sort,
+            min_price: next.minPrice,
+            max_price: next.maxPrice,
+        };
+
         router.get(
             store.index().url,
-            { search, category },
+            Object.fromEntries(
+                Object.entries(query).filter(([, value]) => value !== ''),
+            ),
             {
                 preserveState: true,
                 preserveUrl: true,
@@ -145,34 +230,34 @@ export default function StoreIndex({
                 replace: true,
             },
         );
+    };
+    const submit = (event: FormEvent) => {
+        event.preventDefault();
+        applyFilters();
+    };
+    const changeSort = (value: string) => {
+        const next = value === 'featured' ? '' : value;
+        setSort(next);
+        applyFilters({ sort: next });
     };
     const clearFilters = () => {
         setSearch('');
         setCategory('');
-        router.get(
-            store.index().url,
-            {},
-            {
-                preserveState: true,
-                preserveUrl: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
+        setSort('');
+        setMinPrice('');
+        setMaxPrice('');
+        applyFilters({
+            search: '',
+            category: '',
+            sort: '',
+            minPrice: '',
+            maxPrice: '',
+        });
     };
     const goToProductCategory = (slug: string) => {
         const next = category === slug ? '' : slug;
         setCategory(next);
-        router.get(
-            store.index().url,
-            { search, category: next },
-            {
-                preserveState: true,
-                preserveUrl: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
+        applyFilters({ category: next });
         document
             .getElementById('catalogo')
             ?.scrollIntoView({ behavior: 'smooth' });
@@ -211,7 +296,7 @@ export default function StoreIndex({
             <section className={'relative overflow-hidden bg-black text-white'}>
                 <div
                     className={
-                        'relative z-10 mx-auto w-full max-w-[1400px] px-6 pt-12 pb-4 sm:px-10 lg:pt-16 lg:pb-28'
+                        'relative z-10 mx-auto w-full max-w-[1400px] px-6 pt-6 pb-4 max-lg:pb-16 sm:px-10 lg:pt-6 lg:pb-28'
                     }
                 >
                     <div
@@ -225,7 +310,7 @@ export default function StoreIndex({
 
                     <h1
                         className={
-                            'mt-8 font-display text-[clamp(3.25rem,13vw,10.5rem)] leading-[0.82] uppercase sm:mt-10'
+                            'mt-8 font-display text-[clamp(3.25rem,13vw,10.5rem)] leading-[0.82] uppercase max-lg:text-[clamp(4rem,21vw,8.5rem)] sm:mt-10'
                         }
                     >
                         <span
@@ -244,7 +329,8 @@ export default function StoreIndex({
                                 'text-sm leading-relaxed text-white/55 sm:whitespace-nowrap'
                             }
                         >
-                            Merch exclusivo del evento para llevarte un pedacito de la experiencia.
+                            Merch exclusivo del evento para llevarte un pedacito
+                            de la experiencia.
                         </p>
                         <a
                             href={'#catalogo'}
@@ -266,13 +352,12 @@ export default function StoreIndex({
                     src={heroImages[heroImageIndex]}
                     alt={'Merch oficial del evento'}
                     className={
-                        'pointer-events-none mx-auto -mt-2 mb-8 block w-[86%] max-w-xs object-contain transition-opacity duration-300 select-none [filter:contrast(1.05)_saturate(1.05)] sm:max-w-sm lg:absolute lg:right-[14%] lg:bottom-0 lg:z-0 lg:m-0 lg:w-[52%] lg:max-w-[780px] lg:[mask-image:linear-gradient(to_top,transparent,#000_20%)] ' +
+                        'pointer-events-none mx-auto -mt-2 mb-8 block w-[86%] max-w-xs object-contain [filter:contrast(1.05)_saturate(1.05)] transition-opacity duration-300 select-none max-lg:hidden sm:max-w-sm lg:absolute lg:right-[14%] lg:bottom-0 lg:z-0 lg:m-0 lg:w-[52%] lg:max-w-[780px] lg:[mask-image:linear-gradient(to_top,transparent,#000_20%)] ' +
                         (heroImageVisible
                             ? 'opacity-100 lg:opacity-90'
                             : 'opacity-0')
                     }
                 />
-
 
                 <svg
                     aria-hidden={'true'}
@@ -449,7 +534,9 @@ export default function StoreIndex({
                                                             type={'button'}
                                                             size={'sm'}
                                                             disabled={soldOut}
-                                                            onClick={(event) => {
+                                                            onClick={(
+                                                                event,
+                                                            ) => {
                                                                 event.stopPropagation();
                                                                 handleAddToCart(
                                                                     product,
@@ -528,8 +615,10 @@ export default function StoreIndex({
             {/* Catálogo */}
             <section
                 id={'catalogo'}
-            
-                className={'mx-auto max-w-[1600px] scroll-mt-20 px-6 py-14 sm:px-10'}
+
+                className={
+                    'mx-auto max-w-[1600px] scroll-mt-20 px-6 py-14 sm:px-10'
+                }
             >
                 <h2 className={'text-3xl font-black sm:text-4xl'}>Catálogo</h2>
 
@@ -547,48 +636,69 @@ export default function StoreIndex({
                     </div>
                 )}
                 <div
+                    ref={categoryMarqueeRef}
                     className={
-                        'group relative mt-6 -mx-6 overflow-hidden [-webkit-mask-image:linear-gradient(to_right,transparent,#000_5%,#000_95%,transparent)] [mask-image:linear-gradient(to_right,transparent,#000_5%,#000_95%,transparent)] sm:-mx-10'
+                        'group relative -mx-6 mt-6 overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_5%,#000_95%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_5%,#000_95%,transparent)] sm:-mx-10'
                     }
                 >
                     <div
                         className={
-                            'animate-marquee flex w-max group-hover:[animation-play-state:paused]'
+                            'flex w-max animate-marquee group-hover:[animation-play-state:paused]'
                         }
+                        style={{
+                            animationDuration: `${40 * categoryRepeats}s`,
+                        }}
                     >
                         {[0, 1].map((copy) => (
                             <ul
                                 key={`cat-copy-${copy}`}
+                                ref={copy === 0 ? categoryListRef : undefined}
                                 aria-hidden={copy === 1}
                                 className={
                                     'flex shrink-0 list-none items-center gap-x-12 pr-12 sm:gap-x-20 sm:pr-20'
                                 }
                             >
-                                {categories.map((item) => {
-                                    const active = category === item.slug;
+                                {Array.from(
+                                    { length: categoryRepeats },
+                                    (_, repeat) => repeat,
+                                ).flatMap((repeat) =>
+                                    categories.map((item) => {
+                                        const active = category === item.slug;
+                                        const isDuplicate =
+                                            copy === 1 || repeat > 0;
 
-                                    return (
-                                        <li key={`cat-${copy}-${item.id}`}>
-                                            <button
-                                                type={'button'}
-                                                onClick={() =>
-                                                    goToProductCategory(
-                                                        item.slug,
-                                                    )
-                                                }
-                                                tabIndex={copy === 1 ? -1 : 0}
-                                                className={
-                                                    'block px-3 py-2 font-display text-3xl leading-none tracking-wide whitespace-nowrap uppercase transition-colors duration-200 hover:animate-shine hover:bg-[linear-gradient(110deg,rgba(255,255,255,0.35)_35%,#ffffff_50%,rgba(255,255,255,0.35)_65%)] hover:bg-clip-text hover:text-transparent hover:[background-size:200%_auto] sm:text-5xl ' +
-                                                    (active
-                                                        ? 'text-white'
-                                                        : 'text-white/40')
+                                        return (
+                                            <li
+                                                key={`cat-${copy}-${repeat}-${item.id}`}
+                                                aria-hidden={
+                                                    copy === 0 && repeat > 0
+                                                        ? true
+                                                        : undefined
                                                 }
                                             >
-                                                {item.name}
-                                            </button>
-                                        </li>
-                                    );
-                                })}
+                                                <button
+                                                    type={'button'}
+                                                    onClick={() =>
+                                                        goToProductCategory(
+                                                            item.slug,
+                                                        )
+                                                    }
+                                                    tabIndex={
+                                                        isDuplicate ? -1 : 0
+                                                    }
+                                                    className={
+                                                        'block px-3 py-2 font-display text-3xl leading-none tracking-wide whitespace-nowrap uppercase transition-colors duration-200 hover:animate-shine hover:bg-[linear-gradient(110deg,rgba(255,255,255,0.35)_35%,#ffffff_50%,rgba(255,255,255,0.35)_65%)] hover:[background-size:200%_auto] hover:bg-clip-text hover:text-transparent sm:text-5xl ' +
+                                                        (active
+                                                            ? 'text-white'
+                                                            : 'text-white/40')
+                                                    }
+                                                >
+                                                    {item.name}
+                                                </button>
+                                            </li>
+                                        );
+                                    }),
+                                )}
                             </ul>
                         ))}
                     </div>
@@ -616,6 +726,29 @@ export default function StoreIndex({
                         />
                     </div>
                     <Button
+                        type={'button'}
+                        variant={'outline'}
+                        onClick={() => setFiltersOpen((open) => !open)}
+                        aria-expanded={filtersOpen}
+                        aria-controls={'catalogo-filtros'}
+                        className={
+                            'h-14 border-white/10 bg-zinc-900 px-6 text-white hover:bg-zinc-800 hover:text-white ' +
+                            (filtersOpen ? 'border-white/30' : '')
+                        }
+                    >
+                        <SlidersHorizontal className={'size-4'} />
+                        Filtros
+                        {activeFilterCount > 0 && (
+                            <span
+                                className={
+                                    'grid size-5 place-items-center rounded-full bg-brand text-[0.7rem] font-bold'
+                                }
+                            >
+                                {activeFilterCount}
+                            </span>
+                        )}
+                    </Button>
+                    <Button
                         className={
                             'h-14 bg-brand px-8 text-white hover:bg-brand-hover'
                         }
@@ -623,6 +756,115 @@ export default function StoreIndex({
                         Buscar
                     </Button>
                 </form>
+
+                {filtersOpen && (
+                    <form
+                        id={'catalogo-filtros'}
+                        onSubmit={submit}
+                        className={
+                            'mt-3 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]'
+                        }
+                    >
+                        <div className={'grid gap-2'}>
+                            <span
+                                className={
+                                    'text-xs font-semibold tracking-[.15em] text-white/50 uppercase'
+                                }
+                            >
+                                Ordenar por
+                            </span>
+                            <Select
+                                value={sort || 'featured'}
+                                onValueChange={changeSort}
+                            >
+                                <SelectTrigger
+                                    aria-label={'Ordenar por'}
+                                    className={
+                                        'h-12 w-full border-white/10 bg-zinc-900'
+                                    }
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {sortOptions.map((option) => (
+                                        <SelectItem
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className={'grid gap-2'}>
+                            <span
+                                className={
+                                    'text-xs font-semibold tracking-[.15em] text-white/50 uppercase'
+                                }
+                            >
+                                Precio
+                            </span>
+                            <div className={'flex items-center gap-2'}>
+                                <Input
+                                    type={'number'}
+                                    inputMode={'decimal'}
+                                    min={0}
+                                    value={minPrice}
+                                    onChange={(e) =>
+                                        setMinPrice(e.target.value)
+                                    }
+                                    placeholder={'Mínimo'}
+                                    aria-label={'Precio mínimo'}
+                                    className={
+                                        'h-12 border-white/10 bg-zinc-900'
+                                    }
+                                />
+                                <span className={'text-white/40'}>–</span>
+                                <Input
+                                    type={'number'}
+                                    inputMode={'decimal'}
+                                    min={0}
+                                    value={maxPrice}
+                                    onChange={(e) =>
+                                        setMaxPrice(e.target.value)
+                                    }
+                                    placeholder={'Máximo'}
+                                    aria-label={'Precio máximo'}
+                                    className={
+                                        'h-12 border-white/10 bg-zinc-900'
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        <div
+                            className={
+                                'flex items-end gap-2 sm:col-span-2 lg:col-span-1'
+                            }
+                        >
+                            <Button
+                                className={
+                                    'h-12 flex-1 bg-brand px-6 text-white hover:bg-brand-hover lg:flex-none'
+                                }
+                            >
+                                Aplicar
+                            </Button>
+                            <Button
+                                type={'button'}
+                                variant={'ghost'}
+                                onClick={clearFilters}
+                                className={
+                                    'h-12 text-white/60 hover:bg-white/10 hover:text-white'
+                                }
+                            >
+                                <X className={'size-4'} />
+                                Limpiar
+                            </Button>
+                        </div>
+                    </form>
+                )}
 
                 <div
                     className={
@@ -655,7 +897,9 @@ export default function StoreIndex({
                                         }
                                     >
                                         <img
-                                            src={storeProductImage(product.slug)}
+                                            src={storeProductImage(
+                                                product.slug,
+                                            )}
                                             alt={product.name}
                                             className={
                                                 'absolute inset-0 h-full w-full object-cover transition group-hover:scale-110'
@@ -730,7 +974,11 @@ export default function StoreIndex({
                     >
                         <PackageSearch className={'mx-auto mb-4'} />
                         No hay productos para estos filtros.
-                        {(search || category) && (
+                        {(search ||
+                            category ||
+                            sort ||
+                            minPrice ||
+                            maxPrice) && (
                             <div className={'mt-4'}>
                                 <Button
                                     type={'button'}

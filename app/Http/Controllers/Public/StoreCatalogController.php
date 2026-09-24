@@ -22,6 +22,8 @@ final class StoreCatalogController extends Controller
         $category = $request->string('category')->toString();
         $minPrice = $request->string('min_price')->trim()->toString();
         $maxPrice = $request->string('max_price')->trim()->toString();
+        $sort = $request->string('sort')->toString();
+        $sort = in_array($sort, ['name_asc', 'name_desc', 'price_asc', 'price_desc', 'newest'], true) ? $sort : '';
 
         $withRelations = fn ($query) => $query
             ->select(['id', 'name', 'slug', 'description', 'product_type', 'is_featured'])
@@ -37,8 +39,13 @@ final class StoreCatalogController extends Controller
             ->when($category !== '', fn ($query) => $query->whereHas('categories', fn ($categories) => $categories->where('slug', $category)))
             ->when(is_numeric($minPrice), fn ($query) => $query->whereHas('variants', fn ($variants) => $variants->where('sale_price', '>=', $minPrice)))
             ->when(is_numeric($maxPrice), fn ($query) => $query->whereHas('variants', fn ($variants) => $variants->where('sale_price', '<=', $maxPrice)))
-            ->orderByDesc('is_featured')
-            ->latest('published_at')
+            ->when(in_array($sort, ['price_asc', 'price_desc'], true), fn ($query) => $query->withMin(['variants' => fn ($variants) => $variants->where('is_active', true)], 'sale_price'))
+            ->when($sort === 'name_asc', fn ($query) => $query->orderBy('name'))
+            ->when($sort === 'name_desc', fn ($query) => $query->orderByDesc('name'))
+            ->when($sort === 'price_asc', fn ($query) => $query->orderBy('variants_min_sale_price'))
+            ->when($sort === 'price_desc', fn ($query) => $query->orderByDesc('variants_min_sale_price'))
+            ->when($sort === 'newest', fn ($query) => $query->latest('published_at'))
+            ->when($sort === '', fn ($query) => $query->orderByDesc('is_featured')->latest('published_at'))
             ->paginate(12)
             ->withQueryString();
 
@@ -52,7 +59,7 @@ final class StoreCatalogController extends Controller
             'products' => $products,
             'featuredProducts' => $featuredProducts,
             'categories' => ProductCategory::query()->where('company_id', $company->id)->where('is_visible', true)->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug']),
-            'filters' => compact('search', 'category', 'minPrice', 'maxPrice'),
+            'filters' => compact('search', 'category', 'minPrice', 'maxPrice', 'sort'),
         ]);
     }
 
