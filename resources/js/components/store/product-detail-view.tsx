@@ -1,18 +1,12 @@
-import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Minus, Plus, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { Link, useForm, usePage } from '@inertiajs/react';
+import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { addCartItem } from '@/lib/cart';
-import { money, sessionToken } from '@/lib/platform';
+import { money } from '@/lib/platform';
 import { storeProductImage } from '@/lib/store-images';
 import { login } from '@/routes';
-import productOrders from '@/routes/product-orders';
 import type { Auth } from '@/types';
-import { RegisterModal } from './register-modal';
-import type { RegisteredData } from './register-modal';
 
 export type ProductDetailVariant = {
     id: string;
@@ -39,11 +33,6 @@ export function ProductDetailView({
 }) {
     const { auth } = usePage<{ auth: Auth }>().props;
     const form = useForm({
-        buyer_name: auth.user?.name ?? '',
-        buyer_email: auth.user?.email ?? '',
-        buyer_phone: String(auth.user?.phone ?? ''),
-        buyer_identity_document: '',
-        session_token: sessionToken(),
         items: [
             { product_variant_id: product.variants[0]?.id ?? '', quantity: 1 },
         ],
@@ -67,7 +56,6 @@ export function ProductDetailView({
         onClose();
         window.setTimeout(run, 220);
     };
-    const submitOrder = () => form.post(productOrders.store().url);
     const addItemToCart = () => {
         if (!selected) {
             return;
@@ -91,25 +79,6 @@ export function ProductDetailView({
     const addToCartAndGo = () => {
         addItemToCart();
         window.dispatchEvent(new Event('eventa-cart-open-drawer'));
-    };
-    const [registerOpen, setRegisterOpen] = useState(false);
-    const [registerKey, setRegisterKey] = useState(0);
-    const openRegister = () => {
-        setRegisterKey((key) => key + 1);
-        setRegisterOpen(true);
-    };
-    const handleRegistered = (data: RegisteredData) => {
-        form.setData((current) => ({
-            ...current,
-            buyer_name: data.name,
-            buyer_email: data.email,
-            buyer_phone: data.phone || current.buyer_phone,
-        }));
-        // Cuenta creada (ya con sesión): refrescamos auth y enviamos el pedido.
-        router.reload({
-            only: ['auth'],
-            onFinish: () => closeThen(submitOrder),
-        });
     };
 
     return (
@@ -211,88 +180,13 @@ export function ProductDetailView({
                     </div>
                 </div>
                 {!auth.user && (
-                    <>
-                        <Button
-                            asChild
-                            variant={'outline'}
-                            className={
-                                'mt-10 w-full border-white/15 bg-transparent'
-                            }
-                        >
-                            <Link href={login()}>Iniciar sesión</Link>
-                        </Button>
-                        <div
-                            className={
-                                'my-6 flex items-center gap-4 text-xs font-bold tracking-widest text-zinc-500 uppercase'
-                            }
-                        >
-                            <span className={'h-px flex-1 bg-white/10'} />
-                            o
-                            <span className={'h-px flex-1 bg-white/10'} />
-                        </div>
-                        <h2 className={'text-2xl font-black'}>
-                            Datos para el pedido
-                        </h2>
-                        <div className={'mt-5 grid gap-4 sm:grid-cols-2'}>
-                            {[
-                                [
-                                    'buyer_name',
-                                    'Nombre completo',
-                                    'Ana Pérez',
-                                    'text',
-                                ],
-                                [
-                                    'buyer_email',
-                                    'Correo',
-                                    'ana@ejemplo.com',
-                                    'email',
-                                ],
-                                [
-                                    'buyer_phone',
-                                    'Teléfono',
-                                    '+591 70000000',
-                                    'tel',
-                                ],
-                                [
-                                    'buyer_identity_document',
-                                    'Documento',
-                                    '1234567',
-                                    'text',
-                                ],
-                            ].map(([field, label, placeholder, type]) => (
-                                <div key={field} className={'space-y-2'}>
-                                    <Label>{label}</Label>
-                                    <Input
-                                        type={type}
-                                        placeholder={placeholder}
-                                        value={
-                                            form.data[
-                                                field as keyof typeof form.data
-                                            ] as string
-                                        }
-                                        onChange={(e) =>
-                                            form.setData(
-                                                field as keyof typeof form.data,
-                                                e.target.value as never,
-                                            )
-                                        }
-                                        className={'border-white/10 bg-white/5'}
-                                    />
-                                    {form.errors[
-                                        field as keyof typeof form.errors
-                                    ] && (
-                                        <p className={'text-xs text-red-400'}>
-                                            {
-                                                form.errors[
-                                                    field as keyof typeof form.errors
-                                                ]
-                                            }
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </>
+                    <Button
+                        asChild
+                        variant={'outline'}
+                        className={'mt-10 w-full border-white/15 bg-transparent'}
+                    >
+                        <Link href={login()}>Iniciar sesión</Link>
+                    </Button>
                 )}
                 <div
                     className={'mt-8 flex items-center justify-between text-xl'}
@@ -306,41 +200,17 @@ export function ProductDetailView({
                     className={
                         'mt-5 w-full bg-cyan-400 text-zinc-950 hover:bg-cyan-300'
                     }
-                    disabled={!selected || form.processing}
-                    onClick={() => {
-                        if (!auth.user) {
-                            openRegister();
-
-                            return;
-                        }
-
-                        closeThen(submitOrder);
-                    }}
-                >
-                    Comprar con QR
-                </Button>
-                <Button
-                    variant={'outline'}
-                    className={'mt-3 w-full border-white/15 bg-transparent'}
                     disabled={!selected}
                     onClick={() => closeThen(addToCartAndGo)}
                 >
                     Agregar al carrito
                 </Button>
                 <p className={'mt-4 flex gap-2 text-xs text-zinc-500'}>
-                    <ShieldCheck className={'size-4'} />
-                    El stock se reserva hasta que venza el QR.
+                    <ShoppingCart className={'size-4'} />
+                    Para comprar, agrega el producto al carrito y finaliza la
+                    compra desde allí.
                 </p>
             </div>
-            <RegisterModal
-                key={registerKey}
-                open={registerOpen}
-                onOpenChange={setRegisterOpen}
-                initialName={form.data.buyer_name}
-                initialEmail={form.data.buyer_email}
-                initialPhone={form.data.buyer_phone}
-                onRegistered={handleRegistered}
-            />
         </section>
     );
 }
