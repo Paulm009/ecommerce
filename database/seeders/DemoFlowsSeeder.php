@@ -80,6 +80,8 @@ final class DemoFlowsSeeder extends Seeder
             ['product_variant_id' => $gorra->id, 'quantity' => 1],
         ], 'Pedido Web Pagado Multiproducto');
         app(ConfirmPayment::class)->handle($paidOrderPayment, 'BANK-ORDER-PAID-001', 'EVENT-ORDER-PAID-001', 'demo_seed');
+        $pinOrderPayment = $this->productOrder($company, [['product_variant_id' => $pin->id, 'quantity' => 3]], 'Pedido Web Pagado Pines');
+        app(ConfirmPayment::class)->handle($pinOrderPayment, 'BANK-ORDER-PAID-002', 'EVENT-ORDER-PAID-002', 'demo_seed');
         $this->productOrder($company, [['product_variant_id' => $gorra->id, 'quantity' => 2]], 'Pedido Web Pendiente');
         $expiredOrderPayment = $this->productOrder($company, [['product_variant_id' => $sticker->id, 'quantity' => 1]], 'Pedido Web Vencido');
         ProductOrder::query()->where('sale_id', $expiredOrderPayment->sale_id)->update(['payment_expires_at' => now()->subMinute()]);

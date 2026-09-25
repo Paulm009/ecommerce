@@ -49,6 +49,7 @@ final class DatabaseSeeder extends Seeder
             DemoCatalogSeeder::class,
             DemoEventSeeder::class,
             DemoFlowsSeeder::class,
+            DemoCustomerTicketsSeeder::class,
         ]);
     }
 }
