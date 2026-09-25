@@ -7,7 +7,7 @@ namespace Database\Seeders;
 use App\Actions\Payments\ConfirmPayment;
 use App\Actions\Tickets\ConfirmTicketReservation;
 use App\Actions\Tickets\CreateTicketReservation;
-use App\Models\Event;
+use App\Models\EventOccurrence;
 use Illuminate\Database\Seeder;
 
 final class DemoCustomerTicketsSeeder extends Seeder
@@ -24,7 +24,7 @@ final class DemoCustomerTicketsSeeder extends Seeder
         ];
 
         foreach ($purchases as $index => [$eventName, $ticketTypeIndex, $quantity]) {
-            $occurrence = Event::query()->where('name', $eventName)->firstOrFail()->occurrences()->with(['layout.locations', 'ticketTypes'])->firstOrFail();
+            $occurrence = EventOccurrence::query()->whereHas('event', fn ($query) => $query->where('name', $eventName))->with(['layout.locations', 'ticketTypes'])->oldest('starts_at')->firstOrFail();
             $location = $occurrence->layout->locations->where('is_selectable', true)->values()->get($index % 2 === 0 ? 0 : 1);
             $ticketType = $occurrence->ticketTypes->values()->get($ticketTypeIndex) ?? $occurrence->ticketTypes->first();
             $number = str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);

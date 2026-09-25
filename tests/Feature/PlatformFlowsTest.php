@@ -30,11 +30,11 @@ it('seeds every operational flow with coherent states', function (): void {
     $this->assertDatabaseCount('layout_templates', 5);
     $this->assertDatabaseCount('events', 6);
     $this->assertDatabaseCount('products', 10);
-    $this->assertDatabaseCount('product_orders', 3);
+    $this->assertDatabaseCount('product_orders', 4);
     $this->assertDatabaseCount('pos_sales', 3);
     $this->assertDatabaseCount('payment_incidents', 1);
     $this->assertDatabaseCount('stock_alerts', 1);
-    $this->assertDatabaseCount('outbound_emails', 4);
+    $this->assertDatabaseCount('outbound_emails', 10);
     $this->assertDatabaseCount('access_scans', 1);
 
     $this->assertDatabaseHas('ticket_reservations', ['status' => 'paid']);
@@ -47,7 +47,7 @@ it('seeds every operational flow with coherent states', function (): void {
     $this->assertDatabaseHas('pos_sales', ['status' => 'confirmed']);
     $this->assertDatabaseHas('pos_sales', ['status' => 'pending_payment']);
     $this->assertDatabaseHas('pos_sales', ['status' => 'cancelled']);
-    expect(ProductOrder::query()->where('status', 'paid')->firstOrFail()->items()->count())->toBe(2);
+    expect(ProductOrder::query()->where('status', 'paid')->orderBy('order_number')->firstOrFail()->items()->count())->toBe(2);
 });
 
 it('confirms a ticket payment idempotently', function (): void {
